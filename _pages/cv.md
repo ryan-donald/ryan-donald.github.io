@@ -11,35 +11,37 @@ redirect_from:
 
 Education
 ======
-* Ph.D in Version Control Theory, GitHub University, 2018 (expected)
-* M.S. in Jekyll, GitHub University, 2014
-* B.S. in GitHub, GitHub University, 2012
+* M.S. in Computer Engineering. University of Massachusetts, Lowell. 2024. 4.0 GPA
+* B.S. in Electrical Engineering. University of Massachusetts, Lowell. 2023. 3.95 GPA
 
 Work experience
 ======
-* Spring 2024: Academic Pages Collaborator
-  * GitHub University
-  * Duties includes: Updates and improvements to template
-  * Supervisor: The Users
-
-* Fall 2015: Research Assistant
-  * GitHub University
-  * Duties included: Merging pull requests
-  * Supervisor: Professor Hub
-
-* Summer 2015: Research Assistant
-  * GitHub University
-  * Duties included: Tagging issues
-  * Supervisor: Professor Git
+* Member of Technical Staff 2
+  * April 2025 - Present
+  * Draper
+  * 
   
+* Research Assistant
+  * September 2020 - August 2024
+  * Persistent Autonomy and Robot Learning (PeARL) Lab at University of Massachusetts, Lowell
+  * 
+
+
+
 Skills
 ======
-* Skill 1
-* Skill 2
-  * Sub-skill 2.1
-  * Sub-skill 2.2
-  * Sub-skill 2.3
-* Skill 3
+* Programming Languages
+  * Python
+  * C / C++
+  * MATLAB
+  * Java
+* Robotics
+  * Computer Vision
+  * Manipulation
+  * Path Planning
+  * Localization
+  * Reinforcement Learning
+  * ROS / ROS2
 
 Publications
 ======
@@ -47,7 +49,7 @@ Publications
     {% include archive-single-cv.html %}
   {% endfor %}</ul>
   
-Talks
+<!-- Talks
 ======
   <ul>{% for post in site.talks reversed %}
     {% include archive-single-talk-cv.html  %}
@@ -61,4 +63,4 @@ Teaching
   
 Service and leadership
 ======
-* Currently signed in to 43 different slack teams
+* Currently signed in to 43 different slack teams -->
