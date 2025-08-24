@@ -16,23 +16,33 @@ Education
 
 Work experience
 ======
-* Member of Technical Staff 2
-  * April 2025 - Present
-  * Draper
+* **Member of Technical Staff 2**
+  * **April 2025 - Present**
+  * **Draper**
   * 
   
-* Research Assistant
-  * September 2020 - August 2024
-  * Persistent Autonomy and Robot Learning (PeARL) Lab at University of Massachusetts, Lowell
-  * 
+* **Research Assistant**
+  * **September 2020 - August 2024**
+  * **Persistent Autonomy and Robot Learning (PeARL) Lab at University of Massachusetts, Lowell**
+  * Designed, developed, and implemented a framework for underwater inspection with a robot within simulation.
+  * Developed a predictive framework utilizing a Intel Realsense camera, attached to the wrist of a Kinova Robotics Jaco 2, mounted on a Ghost Robotics Vision 60. This allows the system to predict and react to environment motion for better target tracking during and after execution of motions within a dynamic environment.
+  * Developed test methods and evaluation frameworks for the categorization and measurement of the autonomy of Unmanned Aerial Vehicles, from both a non-contextual and contextual standpoint.
+  * Gained experience with multiple different different robots including a Fetch Robotics Mobile Manipulator, Kinova Robotics Jaco 2, Ghost Robotics Vision 60, Universal Robots UR5e, and Boston Dynamics Spot.
 
-
+* **Grader**
+  * **January 2023 - May 2024**
+  * **University of Massachusetts, Lowell**
+  * Provided students in the lab with feedback and guidance during COMP.4500 Mobile Robotics I.
+  * Graded the performance of Student’s robots in each of 5 lab projects during the semester.
+  * Worked with the Professor to effectively teach students the material.
+  * Helped teach debugging and testing principles when student’s code or robots had issues.
 
 Skills
 ======
 * Programming Languages
   * Python
   * C / C++
+  * VHDL
   * MATLAB
   * Java
 * Robotics
@@ -42,6 +52,10 @@ Skills
   * Localization
   * Reinforcement Learning
   * ROS / ROS2
+* Tools
+  * Oscilloscopes
+  * Logic Analyzers
+  * Function Generators
 
 Publications
 ======
