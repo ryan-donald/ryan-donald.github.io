@@ -30,7 +30,7 @@ Work experience
   * Gained experience with multiple different different robots including a Fetch Robotics Mobile Manipulator, Kinova Robotics Jaco 2, Ghost Robotics Vision 60, Universal Robots UR5e, and Boston Dynamics Spot.
 
 * **Grader**
-  * **January 2023 - May 2024**
+  * **January 2023 - May 2023**
   * **University of Massachusetts, Lowell**
   * Provided students in the lab with feedback and guidance during COMP.4500 Mobile Robotics I.
   * Graded the performance of Student’s robots in each of 5 lab projects during the semester.
