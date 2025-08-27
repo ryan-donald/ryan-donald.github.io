@@ -17,7 +17,7 @@ Education
 Work experience
 ======
 * **Member of Technical Staff 2**
-  * **April 2025 - Present**
+  * **April 2025 - August 2025**
   * **Draper**
   * 
   
