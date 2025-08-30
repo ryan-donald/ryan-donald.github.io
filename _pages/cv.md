@@ -19,7 +19,10 @@ Work experience
 * **Member of Technical Staff 2**
   * **April 2025 - August 2025**
   * **Draper**
-  * 
+  * Responsible for design, implementation, and documentation of code on a micro controller.
+  * Performed check-out and bring-up of a system alongside a senior engineer, including debugging of any issues.
+  * Developed Python code for post-processing of test data.
+  * Chose to leave to persure a career in robotics.
   
 * **Research Assistant**
   * **September 2020 - August 2024**
