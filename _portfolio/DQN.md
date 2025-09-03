@@ -1,6 +1,6 @@
 ---
 title: "Deep Q-Network"
-excerpt: "Implementation of the Deep Q-Network algorithm, tested with the Cart Pole Gymnasium environment"
+excerpt: "Implementation of the Deep Q-Network algorithm, tested with the Cart Pole Gymnasium environment<br/><img src='/images/cart_pole.gif'>"
 collection: portfolio
 ---
 This notebook contains my implementation of a Deep-Q Network, tested within the Cart Pole Gymnasium environment.  
@@ -349,6 +349,6 @@ plt.show()
 
 
     
-![png](images/Deep-Q-Network_files/Deep-Q-Network_25_0.png)
+![png](/images/Deep-Q-Network_25_0.png)
     
 
