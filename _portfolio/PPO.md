@@ -320,6 +320,6 @@ plt.show()
 
 
     
-![png](PPO_2_continuous_files/PPO_2_continuous_10_0.png)
+![png](/images/PPO_rewards.png)
     
 
