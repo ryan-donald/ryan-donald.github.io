@@ -1,6 +1,6 @@
 ---
 title: "RRT* implementation in Python"
-excerpt: "Implementation of the RRT* algorithm within a jupyter notebook<br/><img src='/images/rrt_star_1.gif'>"
+excerpt: "Implementation of the RRT* algorithm within a jupyter notebook<br/><img src='/images/rrt_star.gif'>"
 collection: portfolio
 ---
 
