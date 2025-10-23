@@ -1,6 +1,6 @@
 ---
 title: "PokerBot"
-excerpt: "A Texas Hold'em playing Robot<br/><a href="https://www.youtube.com/watch?v=jkjWBU8L6bw" target = blank><img src='http://img.youtube.com/vi/jkjWBU8L6bw/0.jpg'></a>"
+excerpt: "A Texas Hold'em playing Robot<br/><a href='https://www.youtube.com/watch?v=jkjWBU8L6bw' target = blank><img src='http://img.youtube.com/vi/jkjWBU8L6bw/0.jpg'></a>"
 collection: portfolio
 ---
 
