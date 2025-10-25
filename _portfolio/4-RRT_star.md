@@ -1,6 +1,6 @@
 ---
 title: "RRT* implementation in Python"
-excerpt: "Implementation of the RRT* algorithm within a jupyter notebook<br/><img src='/images/rrt_star.gif'>"
+excerpt: "Implementation of the RRT* algorithm within a jupyter notebook<br/><img src='/images/rrt_star_website.gif'>"
 collection: portfolio
 ---
 
@@ -12,9 +12,9 @@ import matplotlib.animation as animation
 ```
 
 Below is the Node class, which is a simple data structure to represent each node in the RRT* tree, with the following member variables:  
-- $position$, x,y position pair  
-- $parent$, Node object represnting the parent Node in the RRT* tree
-- $cost$, Distance along the tree from the start Node to this Node
+- *position*, x,y position pair  
+- *parent*, Node object represnting the parent Node in the RRT* tree
+- *cost*, Distance along the tree from the start Node to this Node
 
 
 ```python
