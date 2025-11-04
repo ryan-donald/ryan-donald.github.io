@@ -1,6 +1,6 @@
 ---
 title: "Proximal Policy Optimization, Deep Reinforcement Learning"
-excerpt: "Implementation of the Proximal Policy Optimization (PPO) algorithm, tested with the Atari Pong Gymnasium environment<br/><img src='/images/ppo_pong_website.gif'>"
+excerpt: "Implementation of the Proximal Policy Optimization (PPO) algorithm, tested with the Atari Pong Gymnasium environment<br/><img src='/images/pong_ppo.gif'>"
 collection: portfolio
 ---
 This notebook contains my implementation of the Proximal Policy Optimization algorithm, trained within the Atari ALE/Pong-v5 Gymnasium environment, and verified within the Atari PongNoFrameskip-v4 Gymnasium environment.
