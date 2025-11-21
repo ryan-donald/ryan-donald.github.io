@@ -13,7 +13,7 @@ Below I will describe the changes to my visual odometry pipeline, to improve the
 
 As you can see below, I have run this algorithm and compared the resulting trajectories with my non-optimized, visual odometry only tratrajectories. As you can see in the results, whenever the car detects it is in a location it has been in before, it adds a constraint to the pose graph resulting in a trajectory closer to the ground truth. There is still a large amount of error as a result of drift from the visual odometry pipeline, but this algorithm allows for a reduction in this drift within trajectories with loops. 
 
-One issue, however, is shown in the sequence '02', near the end of the trajectory, the car travels through a location it has been previously, however this time it is traveling in the opposite direction, and fails to detect the loop.
+One issue, however, is shown in the sequence '02'. Near the end of the trajectory the car travels through a location it has been previously, however this time it is traveling in the opposite direction, and fails to detect the loop.
 
 My code can be found [here](https://github.com/ryan-donald/slam/)  
   
