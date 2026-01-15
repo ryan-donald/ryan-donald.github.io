@@ -1,6 +1,6 @@
 ---
 title: "Visual Odometry Pipeline and Visual Slam Pipeline with the KITTI dataset in Python"
-excerpt: "Visual odometry pipeline, and a visual SLAM pipeline. Both tested with the KITTI dataset <br><img src='/images/kitti_05_ground_truth_vs_estimated_2d.svg' onerror this.src='/images/kitti_05_ground_truth_vs_estimated_2d.png' width='49%' <img src='/images/kitti_07_slam_2d.svg' onerror this.src='/images/kitti_07_slam_2d.png' width='49%'>"
+excerpt: "Visual odometry pipeline, and a visual SLAM pipeline. Both tested with the KITTI dataset <br><img src='/images/kitti_05_ground_truth_vs_estimated_2d.svg' onerror this.src='/images/kitti_05_ground_truth_vs_estimated_2d.png' width='49%'><img src='/images/kitti_07_slam_2d.svg' onerror this.src='/images/kitti_07_slam_2d.png' width='49%'>"
 collection: portfolio
 ---
 I have implemented a visual odometry pipeline, tested with the KITTI dataset. This dataset was captured by the Karlsruhe Institute of Technology and Toyota Technological Institute and Chicago by driving their test vehicle, equipped with stereo cameras, a Velodyne laser scanner, and a combined GPS/IMU inertial navigation system. There are 10 sequences of data collected by driving this system on the street in Karlsruhe. More information on this project can be found [here](https://www.cvlibs.net/datasets/kitti/index.php).  
