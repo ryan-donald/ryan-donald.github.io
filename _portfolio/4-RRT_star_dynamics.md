@@ -1,6 +1,6 @@
 ---
 title: "RRT* with differential-drive dynamics implementation in Python"
-excerpt: "Implementation of the RRT* algorithm with and without differential-drive dynamics within jupyter notebooks<p float='left'> <img src='/images/rrt_star_website.gif' width='49%'><img src='/images/rrt_star_dynamics_website.gif' width='49%'> </p>"
+excerpt: "Implementation of the RRT* algorithm with and without differential-drive dynamics within jupyter notebooks<div> <img src='/images/rrt_star_website.gif' width='49%'><img src='/images/rrt_star_dynamics_website.gif' width='49%'> </div>"
 collection: portfolio
 ---
 
