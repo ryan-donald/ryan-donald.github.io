@@ -14,7 +14,8 @@ I utilized the data from this, as I find the self-driving car problem to be very
 - Next, the points in the 3-dimensional space are reconstructed, and filtered for invalid depth values.
 - Using the set of 3-dimensional points, and the corresponding points in the next image, the camera's new pose is estimated using Perspective-n-Point RANSAC. 
 
-My code can be found [here](https://github.com/ryan-donald/Visual-Odometry)  
+My code can be found [here](https://github.com/ryan-donald/Visual-Odometry).
+I also implemented this pipeline in C++ [here](https://github.com/ryan-donald/visual_odometry_CPP).
   
 After this, I then improved my visual odometry pipeline to include keyframing, loop closures, and graph optimization. I use the same KITTI dataset as in my visual odometry pipeline.
 
