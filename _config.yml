@@ -27,7 +27,7 @@ author:
   pronouns         : # example: "she/her"  
   bio              : "A driven engineer, who is excited to continue working in Robotics, and driving the robotics industry forward"
   location         : "Methuen, MA"
-  employer         : "Draper"
+  employer         : #
   uri              : # URL
   email            : "ryanpdonald@gmail.com" 
 
