@@ -1,6 +1,6 @@
 ---
 title: "PPO Control with the Standard Open ARM101"
-excerpt: "Implementation of the Proximal Policy Optimization (PPO) algorithm, tested with the Standard Open ARM101 in IsaacLab and deployed in the real world<br/><img src='https://img.youtube.com/vi/MzxyW7mrM0s/0.jpg' width='50%'>"
+excerpt: "Implementation of the Proximal Policy Optimization (PPO) algorithm, tested with the Standard Open ARM101 in IsaacLab and deployed in the real world<br/><img src='https://img.youtube.com/vi/MzxyW7mrM0s/maxresdefault.jpg' width='50%'>"
 collection: portfolio
 ---
 ## Motivation
@@ -12,7 +12,7 @@ LeRobot is used to command this robot and retrieve the current joint-states. The
 Additionally, the initial values for the motor parameters did not match the real-world robot. The real-world robot uses a PD controller to move each motor to the commanded joint position. In IsaacLab, the proportional (P) term of the controller is represented by the stiffness value of a joint, and the derivative (D) term of the controller is represented by the damping value of a joint. Additionally, the velocity limit for the joints was initially set at a value around 30% of the real-world velocity limit, which meant that the model was trained on a much slower robot As a result of these mis-matches, the model performed as expected in the simulator, but poorly on the real-world robot. To fix this, I collected data on the motor's step responses, as well as the velocity that the motors moved at. Using this, I tuned the simulator values to closely match the values the real-world motors had, and once I was able to re-train the model, it worked as expected on the real-world robot. 
 
 In the current state of this project, I have the reach task working as expected on the real-world robot. A video of the reach task on the real-world robot can be found below:
-[![PPO SO-ARM101 sim2real](https://img.youtube.com/vi/MzxyW7mrM0s/0.jpg)](https://www.youtube.com/watch?v=MzxyW7mrM0s).
+[![PPO SO-ARM101 sim2real](https://img.youtube.com/vi/MzxyW7mrM0s/maxresdefault.jpg)](https://www.youtube.com/watch?v=MzxyW7mrM0s).
 
 In this, the robot is controlled by a model which is trained to control and move the robot from any joint state to one where the end-effector is at a specific position in the robot's coordinate frame. Once the end-effector is within 4cm of the target position, a new target position is randomly sampled in the workspace and the robot then moves to that location. As you can see in the video, the motion is not perfectly smooth, as the commands for each joint are specifying joint positions, not velocities, and there is some backlash in the motors themselves as they are inexpensive hobby motors. Regardless, I was able to train a model within IsaacLab and deploy it onto a real-world robot.
 
