@@ -25,5 +25,5 @@ My implementation of PPO that I am using can be found [here](https://github.com/
 My trained models are shown below, both the final visual performance, and the fine grained end-effector position reward. This reward is a fine-grained reward for the end-effector position relative to the goal. It receives a reward for each step that it is close to the goal position, with a larger reward per step the closer the end-effector is to the goal.
 
 <p float="left">
-    <img src='/images/reach_training.svg' onerror this.src='/images/reach_training.png' width='49%'> <img src='/images/so101_reach.gif' width="49%"> 
+    <img src='/images/reach_training.png' width='49%'> <img src='/images/so101_reach.gif' width="49%"> 
 </p>
