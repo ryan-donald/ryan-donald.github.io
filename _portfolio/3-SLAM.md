@@ -1,9 +1,9 @@
 ---
-title: "Visual Odometry Pipeline and Visual Slam Pipeline with the KITTI dataset in Python"
-excerpt: "Visual odometry pipeline, and a visual SLAM pipeline. Both tested with the KITTI dataset <br><img src='/images/kitti_05_ground_truth_vs_estimated_2d.svg' onerror this.src='/images/kitti_05_ground_truth_vs_estimated_2d.png' width='49%'><img src='/images/kitti_07_slam_2d.svg' onerror this.src='/images/kitti_07_slam_2d.png' width='49%'>"
+title: "Visual Odometry Pipeline and Visual SLAM Pipeline with the KITTI dataset in Python"
+excerpt: "Visual odometry pipeline, and a visual SLAM pipeline. Both tested with the KITTI dataset <br><img src='/images/kitti_05_ground_truth_vs_estimated_2d.svg' width='49%'><img src='/images/kitti_07_slam_2d.svg' width='49%'>"
 collection: portfolio
 ---
-I have implemented a visual odometry pipeline, tested with the KITTI dataset. This dataset was captured by the Karlsruhe Institute of Technology and Toyota Technological Institute and Chicago by driving their test vehicle, equipped with stereo cameras, a Velodyne laser scanner, and a combined GPS/IMU inertial navigation system. There are 10 sequences of data collected by driving this system on the street in Karlsruhe. More information on this project can be found [here](https://www.cvlibs.net/datasets/kitti/index.php).  
+I have implemented a visual odometry pipeline, tested with the KITTI dataset. This dataset was captured by the Karlsruhe Institute of Technology and Toyota Technological Institute at Chicago by driving their test vehicle, equipped with stereo cameras, a Velodyne laser scanner, and a combined GPS/IMU inertial navigation system. There are 10 sequences of data collected by driving this system on the street in Karlsruhe. More information on this project can be found [here](https://www.cvlibs.net/datasets/kitti/index.php).  
   
 I utilized the data from this, as I find the self-driving car problem to be very interesting. Additionally, this data is useful as they provide the ground-truth information for each sequence, which helped me verify my implementation. This algorithm follows the outline below:  
 - First, the left and right stereo images of each frame are loaded. These are pre-rectified in the dataset. Additionally, the left camera's image from the next frame is loaded.
@@ -34,12 +34,12 @@ My code can be found [here](https://github.com/ryan-donald/slam/)
 
 Below, estimated trajectories for three of the sequences can be seen from the visual odometry only pipeline. The top-down image is shown, as this shows how well the implementation can track the path of the vehicle on a map.
   
-<img src='/images/kitti_05_ground_truth_vs_estimated_2d.svg' onerror this.src='/images/kitti_05_ground_truth_vs_estimated_2d.png'>
-<img src='/images/kitti_07_ground_truth_vs_estimated_2d.svg' onerror this.src='/images/kitti_07_ground_truth_vs_estimated_2d.png'>
-<img src='/images/kitti_08_ground_truth_vs_estimated_2d.svg' onerror this.src='/images/kitti_08_ground_truth_vs_estimated_2d.png'>
+<img src='/images/kitti_05_ground_truth_vs_estimated_2d.svg' onerror="this.src='/images/kitti_05_ground_truth_vs_estimated_2d.png'">
+<img src='/images/kitti_07_ground_truth_vs_estimated_2d.svg' onerror="this.src='/images/kitti_07_ground_truth_vs_estimated_2d.png'">
+<img src='/images/kitti_08_ground_truth_vs_estimated_2d.svg' onerror="this.src='/images/kitti_08_ground_truth_vs_estimated_2d.png'">
 
 Next, I showcase the estimated trajectories for three sequences from the SLAM pipeline, again with a top-down image shown.
 
-<img src='/images/kitti_02_slam_2d.svg' onerror this.src='/images/kitti_02_slam_2d.png'>
-<img src='/images/kitti_05_slam_2d.svg' onerror this.src='/images/kitti_05_slam_2d.png'>
-<img src='/images/kitti_07_slam_2d.svg' onerror this.src='/images/kitti_07_slam_2d.png'>
+<img src='/images/kitti_02_slam_2d.svg' onerror="this.src='/images/kitti_02_slam_2d.png'">
+<img src='/images/kitti_05_slam_2d.svg' onerror="this.src='/images/kitti_05_slam_2d.png'">
+<img src='/images/kitti_07_slam_2d.svg' onerror="this.src='/images/kitti_07_slam_2d.png'">
