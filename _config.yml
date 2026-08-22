@@ -221,7 +221,9 @@ kramdown:
       start_line: 1
 
 # Includes & excludes
-include: ["_pages"]
+include: ["_pages", ".nojekyll"]  # .nojekyll is copied into _site so the
+                                    # built gh-pages branch is served as-is,
+                                    # not re-processed by GitHub native Jekyll
 exclude:
   - AGENTS.md
   - al-folio-upgrade-report.md
