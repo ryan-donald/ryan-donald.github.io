@@ -1,0 +1,167 @@
+<!DOCTYPE html> <html lang="en"> <head> <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"> <meta charset="utf-8"> <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"> <meta http-equiv="X-UA-Compatible" content="IE=edge"> <title> PPO Sim2Real on the SO-ARM101 | Ryan Donald </title> <meta name="author" content="Ryan Donald"> <meta name="description" content="Training PPO in Isaac Lab and deploying it on a real SO-ARM101, benchmarked against four established RL libraries"> <meta name="keywords" content="robotics, reinforcement learning, sim2real, PPO, Isaac Lab, SLAM, manipulation"> <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https:; font-src 'self' data: https:; media-src 'self' https:; frame-src 'self' https:; connect-src 'self' https:;"> <style>
+  :root {
+    --max-content-width: 930px;
+  }
+</style> <link rel="stylesheet" href="/assets/css/tailwind.css?v=50c64c15cbb9fd1ce6056fdb8bcb4b62"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.2.0/css/all.min.css" integrity="sha256-MVopmdyC2tYTiJ8wlktf0uh0v4NgT+vNdyVFepi7Q0c=" crossorigin="anonymous"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/academicons@1.9.5/css/academicons.min.css" integrity="sha256-SzrCOBJbGVFMahewkgjwnApaV2+av1DwMAA+/QGLyZw=" crossorigin="anonymous"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/scholar-icons@1.0.3/css/scholar-icons.css" integrity="sha256-VY3hHVj/hNX3fYG6wtbA6TcKJQl7+FthzGSyIB64klY=" crossorigin="anonymous"> <link defer rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Roboto+Slab:100,300,400,500,700|Material+Icons&amp;display=swap"> <link defer rel="stylesheet" href="/assets/css/jekyll-pygments-themes-github.css?v=591dab5a4e56573bf4ef7fd332894c99" media="" id="highlight_theme_light"> <link rel="shortcut icon" href="data:image/svg+xml,&lt;svg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%20100%20100%22&gt;&lt;text%20y=%22.9em%22%20font-size=%2290%22&gt;%F0%9F%A4%96&lt;/text&gt;&lt;/svg&gt;"> <link rel="stylesheet" href="/assets/css/main.css?v=3116ba77db9ee1581d05bb3e86fbf7f1"> <link rel="canonical" href="https://ryandonald.dev/projects/01_ppo_sim2real/"> <script src="/assets/js/theme.js?v=5286c3e4c334d0ecb8fc0c40ff4fa7ec"></script> <link defer rel="stylesheet" href="/assets/css/jekyll-pygments-themes-native.css?v=5847e5ed4a4568527aa6cfab446049ca" media="none" id="highlight_theme_dark"> <script>
+    initTheme();
+  </script> </head> <body class="fixed-top-nav "> <header> <nav id="navbar" class="navbar navbar-light navbar-expand-sm fixed-top" role="navigation"> <div class="container"> <a class="navbar-brand title font-weight-lighter" href="/"> Ryan Donald </a> <button class="navbar-toggler collapsed navbar-toggler-main" type="button" data-nav-toggle="navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation"> <span class="sr-only">Toggle navigation</span> <span class="icon-bar top-bar"></span> <span class="icon-bar middle-bar"></span> <span class="icon-bar bottom-bar"></span> </button> <div class="collapse navbar-collapse navbar-collapse-main" id="navbarNav"> <ul class="navbar-nav navbar-menu-list flex-nowrap"> <li class="nav-item "> <a class="nav-link" href="/">About </a> </li> <li class="nav-item "> <a class="nav-link" href="/publications/">Publications </a> </li> <li class="nav-item active"> <a class="nav-link" href="/projects/">Projects <span class="sr-only">(current)</span> </a> </li> <li class="nav-item "> <a class="nav-link" href="/cv/">CV </a> </li> <li class="nav-item"> <button id="search-toggle" type="button" title="Search" aria-label="Open search"> <span class="nav-link">ctrl k <i class="fa-solid fa-magnifying-glass"></i></span> </button> </li> <li class="toggle-container"> <button id="light-toggle" type="button" title="Change theme" aria-label="Change color theme"> <i class="fa-half-sun-moon" id="light-toggle-system"></i> <i class="fa-solid fa-moon" id="light-toggle-dark"></i> <i class="fa-solid fa-sun" id="light-toggle-light"></i> </button> </li> </ul> </div> </div> </nav> <progress id="progress" value="0"> <div class="progress-container"> <span class="progress-bar"></span> </div> </progress> </header> <div class="container mt-5" role="main"> <div class="post"> <header class="post-header"> <h1 class="post-title">PPO Sim2Real on the SO-ARM101</h1> <p class="post-description">Training PPO in Isaac Lab and deploying it on a real SO-ARM101, benchmarked against four established RL libraries</p> </header> <article> <h2 id="motivation">Motivation</h2> <p>Sim2real disconnects are a major pain point in deploying policies trained using typical reinforcement learning methods into the real world. Using my implementation of PPO, I wanted to gain experience with this process, by first training a policy within the IsaacLab simulator, and deploying it on a real-world robot, the SO-ARM101. I have previously used this implementation of PPO to train with a number of tasks provided in the IsaacLab simulator, and for this I trained policies for two tasks. The first is a simple reach task, where the policy learns to move the end-effector of the robot to a specified location. The second is a task to grasp a cube from the table in front of the robot and lift it to a designated location.</p> <h2 id="sim2real-disconnects-and-solutions">Sim2Real disconnects and solutions</h2> <p>LeRobot is used to command this robot and retrieve the current joint-states. These commands and observations are in normalized ranges [-100, 100] for each motor except for the gripper, which is in the range [0, 100]. Through the calibration of the robot, LeRobot abstracts the specific motor encoder values away from the user, and works in terms of a normalized workspace range, representing the limits of each joint. In my initial IsaacLab environment, the joints were controlled directly with radians based on the URDF. To address this gap, I implemented a similar normalization technique for both the observation term and the action term as inputs and outputs of the network.</p> <p>Additionally, the initial values for the motor parameters did not match the real-world robot. The real-world robot uses a PD controller to move each motor to the commanded joint position. In IsaacLab, the proportional (P) term of the controller is represented by the stiffness value of a joint, and the derivative (D) term of the controller is represented by the damping value of a joint. Additionally, the velocity limit for the joints was initially set at a value around 30% of the real-world velocity limit, which meant that the model was trained on a much slower robot. As a result of these mis-matches, the model performed as expected in the simulator, but poorly on the real-world robot. To fix this, I collected data on the motor’s step responses, as well as the velocity that the motors moved at. Using this, I tuned the simulator values to closely match the values the real-world motors had, and once I was able to re-train the model, it worked as expected on the real-world robot.</p> <p>In the current state of this project, I have the reach task working as expected on the real-world robot. A video of the reach task on the real-world robot can be found below: <a href="https://www.youtube.com/watch?v=MzxyW7mrM0s" rel="external nofollow noopener" target="_blank"><img src="https://img.youtube.com/vi/MzxyW7mrM0s/maxresdefault.jpg" alt="PPO SO-ARM101 sim2real"></a>.</p> <p>In this, the robot is controlled by a model which is trained to control and move the robot from any joint state to one where the end-effector is at a specific position in the robot’s coordinate frame. Once the end-effector is within 4cm of the target position, a new target position is randomly sampled in the workspace and the robot then moves to that location. As you can see in the video, the motion is not perfectly smooth, as the commands for each joint are specifying joint positions, not velocities, and there is some backlash in the motors themselves as they are inexpensive hobby motors. Regardless, I was able to train a model within IsaacLab and deploy it onto a real-world robot.</p> <h2 id="benchmarking-my-ppo-implementation-against-established-libraries">Benchmarking my PPO implementation against established libraries</h2> <p>The policy deployed above was trained entirely with my own implementation of PPO, so a fair question is whether writing my own trainer cost me anything against the libraries that ship with Isaac Lab. To answer that, I benchmarked it against all four of them — <a href="https://github.com/leggedrobotics/rsl_rl" rel="external nofollow noopener" target="_blank">rsl_rl</a>, <a href="https://github.com/Denys88/rl_games" rel="external nofollow noopener" target="_blank">rl_games</a>, <a href="https://github.com/Toni-SM/skrl" rel="external nofollow noopener" target="_blank">skrl</a>, and <a href="https://github.com/DLR-RM/stable-baselines3" rel="external nofollow noopener" target="_blank">sb3</a> — on this exact reach task, <code class="language-plaintext highlighter-rouge">Ryan-Reach-SO-ARM101-Normalized-v0</code>.</p> <p>Every run used identical settings on the same GPU (an RTX 3070) under Isaac Lab 3.0: 12,288 parallel environments, headless, 7,500 iterations at 24 steps per environment, with each library’s agent config hyperparameter-matched to mine. Each framework was run over three seeds (42, 43, 44). The table reports the seed-averaged best mean episode reward reached during training, since the best checkpoint is the one that actually gets deployed to the robot.</p> <table> <thead> <tr> <th>Framework</th> <th style="text-align: right">Throughput (steps/s)</th> <th style="text-align: right">Wall-clock (min)</th> <th style="text-align: right">Best reward</th> </tr> </thead> <tbody> <tr> <td><strong>my implementation</strong></td> <td style="text-align: right"><strong>1,283,631</strong></td> <td style="text-align: right"><strong>29.5</strong></td> <td style="text-align: right"><strong>0.927</strong></td> </tr> <tr> <td>skrl</td> <td style="text-align: right">1,084,497</td> <td style="text-align: right">34.7</td> <td style="text-align: right">0.861</td> </tr> <tr> <td>rl_games</td> <td style="text-align: right">1,072,870</td> <td style="text-align: right">35.1</td> <td style="text-align: right">0.900</td> </tr> <tr> <td>rsl_rl</td> <td style="text-align: right">844,198</td> <td style="text-align: right">44.3</td> <td style="text-align: right">0.640</td> </tr> <tr> <td>sb3</td> <td style="text-align: right">627,026</td> <td style="text-align: right">59.5</td> <td style="text-align: right">0.727</td> </tr> </tbody> </table> <p>My implementation reaches both the highest throughput and the highest reward on this task, finishing training around five minutes sooner than the next-fastest library and roughly twice as fast as sb3. The more interesting result is in the shape of the curves rather than the peak numbers. The other four frameworks all peak somewhere in the middle of the run and then regress, settling back toward 0.55–0.75, while mine climbs and then holds near its best through the end of training (final ≈ 0.91 against a best of ≈ 0.93). For sim2real that stability matters more than the peak does, because a run that quietly degrades after its best checkpoint makes choosing which policy to flash onto the robot a matter of luck.</p> <div align="center"> <img src="/assets/img/benchmark_reach_reward_vs_time.png" width="100%" alt="Reach reward vs wall-clock time, all five frameworks, 3 seeds each"> </div> <p>I ran the same comparison on two other tasks of differing difficulty, a cartpole task and an ant locomotion task, with the same result — details and those tables are in the <a href="https://github.com/ryan-donald/ppo" rel="external nofollow noopener" target="_blank">repository README</a>.</p> <h2 id="code-performance-and-control-rate">Code performance and control rate</h2> <p>I profiled the performance of my deployment script for the real robot with cProfile, and the results showed that the control loop of requesting joint-states from the robot through sending actions to the robot could run up to 500hz on the real robot. I trained my policy in rates of 15hz, 30hz, 60hz, 200hz, 400hz. As the rate that the model is executing increases, from 15hz to 400hz, the model appears to become smoother. To achieve this, I had to remove the dynamic target resampling once the end-effector is within a threshold of the target, and replace it with a set of 20 pre-sampled targets that the model provides equal execution time to each sequentially. In a robot deployed to solve a real-world task, I would do something similar, where the control loop runs on its own thread, and information about the environment would be calculated on a separate thread, to increase the overall control rate of the robot.</p> <p>My implementation of PPO that I am using can be found <a href="https://github.com/ryan-donald/ppo" rel="external nofollow noopener" target="_blank">here</a>, and my deployment scripts can be found <a href="https://github.com/ryan-donald/so101_ppo" rel="external nofollow noopener" target="_blank">here</a>.</p> <p>My trained models are shown below, both the final visual performance, and the fine grained end-effector position reward. This reward is a fine-grained reward for the end-effector position relative to the goal. It receives a reward for each step that it is close to the goal position, with a larger reward per step the closer the end-effector is to the goal.</p> <p float="left"> <img src="/assets/img/reach_training.png" width="49%"> <img src="/assets/img/so101_reach.gif" width="49%"> </p> </article> </div> </div> <footer class="fixed-bottom" role="contentinfo"> <div class="container mt-0"> © Copyright 2026 Ryan Donald. Powered by <a href="https://jekyllrb.com/" target="_blank" rel="external nofollow noopener">Jekyll</a> with <a href="https://github.com/alshedivat/al-folio" rel="external nofollow noopener" target="_blank">al-folio</a> theme. Hosted by <a href="https://pages.github.com/" target="_blank" rel="external nofollow noopener">GitHub Pages</a>. </div> </footer> <script>
+  window.alFolio = {
+    compatBootstrap: false
+  };
+</script> <script src="/assets/js/nav-toggle.js?v=141bd79a73ebc0f0b6ea58e440ae79fc"></script> <script defer src="https://cdn.jsdelivr.net/npm/masonry-layout@4.2.2/dist/masonry.pkgd.min.js" integrity="sha256-Nn1q/fx0H7SNLZMQ5Hw5JLaTRZp0yILA/FRexe19VdI=" crossorigin="anonymous"></script> <script defer src="https://cdn.jsdelivr.net/npm/imagesloaded@5.0.0/imagesloaded.pkgd.min.js" integrity="sha256-htrLFfZJ6v5udOG+3kNLINIKh2gvoKqwEhHYfTTMICc=" crossorigin="anonymous"></script> <script defer src="/assets/js/masonry.js?v=e49affc7bd2646f6acdad1dbe02c2359" type="text/javascript"></script> <script defer type="text/javascript" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js" integrity="sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI=" crossorigin="anonymous"></script> <script src="/assets/al_math/js/mathjax-setup.js"></script> <script src="/assets/js/tooltips-setup.js?v=fe487e99db6c43751e6e7bdb2d6a0611"></script> <script src="/assets/js/no_defer.js?v=53b1b1a645525975c963ce8bf8bfefcf"></script> <script defer src="/assets/js/common.js?v=87baac90f765f2f3362dcf6aaf312a8a"></script> <script defer src="/assets/js/copy_code.js?v=c8a01c11a92744d44b093fc3bda915df" type="text/javascript"></script> <script defer src="/assets/js/jupyter_new_tab.js?v=896d254890d9b47f0281f63bfccf0dee"></script> <script async src="https://d1bxh8uas1mnw7.cloudfront.net/assets/embed.js"></script> <script async src="https://badge.dimensions.ai/badge.js"></script> <script defer src="https://cdn.jsdelivr.net/npm/medium-zoom@1.1.0/dist/medium-zoom.min.js" integrity="sha256-ZgMyDAIYDYGxbcpJcfUnYwNevG/xi9OHKaR/8GK+jWc=" crossorigin="anonymous"></script> <script defer src="/assets/al_img_tools/js/zoom.js"></script> <script defer src="/assets/js/progress-bar.js?v=499464c5c63ced6cf7ad62509f1e2610" type="text/javascript"></script> <script src="https://cdn.jsdelivr.net/npm/vanilla-back-to-top@7.2.1/dist/vanilla-back-to-top.min.js" integrity="sha256-uMJJ3EoTyfRBoTbR+lrfu1uRQ87RZG8AR3cVNuQVeFg=" crossorigin="anonymous"></script> <script>
+    addBackToTop();
+  </script> <script type="module" src="/assets/al_search/js/search/ninja-keys.min.js"></script> <ninja-keys hidebreadcrumbs noautoloadmdicons placeholder="Type to start searching"></ninja-keys> <script src="/assets/al_search/js/search-setup.js"></script> <script>
+// get the ninja-keys element
+const ninja = document.querySelector('ninja-keys');
+
+// add the home and posts menu items
+ninja.data = [{
+    id: "nav-about",
+    title: "About",
+    section: "Navigation",
+    handler: () => {
+      window.location.href = "/";
+    },
+  },{id: "nav-publications",
+          title: "Publications",
+          description: "publications by categories in reversed chronological order. generated by jekyll-scholar.",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/publications/";
+          },
+        },{id: "nav-projects",
+          title: "Projects",
+          description: "Robotics, reinforcement learning, and hardware projects.",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/projects/";
+          },
+        },{id: "nav-cv",
+          title: "CV",
+          description: "Education, experience, publications, and skills.",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/cv/";
+          },
+        },{id: "projects-ppo-sim2real-on-the-so-arm101",
+          title: 'PPO Sim2Real on the SO-ARM101',
+          description: "Training PPO in Isaac Lab and deploying it on a real SO-ARM101, benchmarked against four established RL libraries",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/01_ppo_sim2real/";
+            },},{id: "projects-proximal-policy-optimization-in-isaac-lab",
+          title: 'Proximal Policy Optimization in Isaac Lab',
+          description: "My PPO implementation trained across a range of Isaac Lab manipulation and control tasks",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/02_ppo_isaaclab/";
+            },},{id: "projects-ppo-on-atari-pong",
+          title: 'PPO on Atari Pong',
+          description: "PPO implemented from scratch and trained on the ALE/Pong-v5 Gymnasium environment",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/03_ppo_atari/";
+            },},{id: "projects-ppo-on-lunar-lander",
+          title: 'PPO on Lunar Lander',
+          description: "PPO implemented from scratch and trained on the LunarLanderContinuous Gymnasium environment",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/04_ppo_lunar_lander/";
+            },},{id: "projects-deep-q-network",
+          title: 'Deep Q-Network',
+          description: "A DQN implementation trained on the Cart Pole Gymnasium environment",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/05_dqn/";
+            },},{id: "projects-reinforcement-learning-implementations",
+          title: 'Reinforcement Learning Implementations',
+          description: "Q-Learning, SARSA, Actor-Critic with eligibility traces, and Deep Q-Learning across Gymnasium environments",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/06_rl_implementations/";
+            },},{id: "projects-so-arm101-smolvla-finetuning",
+          title: 'SO-ARM101 SmolVLA Finetuning',
+          description: "Finetuning SmolVLA for real-world pick-and-place on the SO-ARM101",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/07_smolvla_finetune/";
+            },},{id: "projects-visual-odometry-and-visual-slam-on-kitti",
+          title: 'Visual Odometry and Visual SLAM on KITTI',
+          description: "A stereo visual odometry pipeline extended with keyframing, loop closure, and pose-graph optimization",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/08_visual_slam/";
+            },},{id: "projects-rrt-with-differential-drive-dynamics",
+          title: 'RRT* with Differential-Drive Dynamics',
+          description: "RRT* and kinodynamic RRT* implemented in Python notebooks",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/09_rrt_star/";
+            },},{id: "projects-pokerbot",
+          title: 'PokerBot',
+          description: "A Texas Hold&#39;em playing robot combining YOLOv8 card vision, a DQN poker agent, and a suction-cup arm",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/10_pokerbot/";
+            },},{id: "projects-animated-julia-and-fatou-sets-on-an-fpga",
+          title: 'Animated Julia and Fatou Sets on an FPGA',
+          description: "A VHDL VGA driver and fractal generator targeting an Intel DE10-Lite",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/11_fpga_julia_fatou/";
+            },},{id: "projects-underwater-robot-electrical-infrastructure",
+          title: 'Underwater Robot Electrical Infrastructure',
+          description: "Undergraduate capstone reviving an underwater robot&#39;s electrical systems and moving it onto ROS",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/12_capstone/";
+            },},{id: "projects-advent-of-code-2025",
+          title: 'Advent of Code 2025',
+          description: "My Python solutions to the 2025 Advent of Code challenges",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/13_advent_of_code/";
+            },},{
+        id: 'social-email',
+        title: 'email',
+        section: 'Socials',
+        handler: () => {
+          window.open("mailto:%72%79%61%6E%70%64%6F%6E%61%6C%64@%67%6D%61%69%6C.%63%6F%6D", "_blank");
+        },
+      },{
+        id: 'social-github',
+        title: 'GitHub',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://github.com/ryan-donald", "_blank");
+        },
+      },{
+        id: 'social-scholar',
+        title: 'Google Scholar',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://scholar.google.com/citations?user=Sy9M6-0AAAAJ", "_blank");
+        },
+      },{
+        id: 'social-rss',
+        title: 'RSS Feed',
+        section: 'Socials',
+        handler: () => {
+          window.open("/feed.xml", "_blank");
+        },
+      },{
+      id: 'light-theme',
+      title: 'Change theme to light',
+      description: 'Change the theme of the site to Light',
+      section: 'Theme',
+      handler: () => {
+        setThemeSetting("light");
+      },
+    },
+    {
+      id: 'dark-theme',
+      title: 'Change theme to dark',
+      description: 'Change the theme of the site to Dark',
+      section: 'Theme',
+      handler: () => {
+        setThemeSetting("dark");
+      },
+    },
+    {
+      id: 'system-theme',
+      title: 'Use system default theme',
+      description: 'Change the theme of the site to System Default',
+      section: 'Theme',
+      handler: () => {
+        setThemeSetting("system");
+      },
+    },];
+
+</script> <script src="/assets/al_search/js/shortcut-key.js"></script> </body> </html>

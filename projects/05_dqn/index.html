@@ -1,0 +1,407 @@
+<!DOCTYPE html> <html lang="en"> <head> <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"> <meta charset="utf-8"> <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"> <meta http-equiv="X-UA-Compatible" content="IE=edge"> <title> Deep Q-Network | Ryan Donald </title> <meta name="author" content="Ryan Donald"> <meta name="description" content="A DQN implementation trained on the Cart Pole Gymnasium environment"> <meta name="keywords" content="robotics, reinforcement learning, sim2real, PPO, Isaac Lab, SLAM, manipulation"> <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https:; font-src 'self' data: https:; media-src 'self' https:; frame-src 'self' https:; connect-src 'self' https:;"> <style>
+  :root {
+    --max-content-width: 930px;
+  }
+</style> <link rel="stylesheet" href="/assets/css/tailwind.css?v=50c64c15cbb9fd1ce6056fdb8bcb4b62"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.2.0/css/all.min.css" integrity="sha256-MVopmdyC2tYTiJ8wlktf0uh0v4NgT+vNdyVFepi7Q0c=" crossorigin="anonymous"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/academicons@1.9.5/css/academicons.min.css" integrity="sha256-SzrCOBJbGVFMahewkgjwnApaV2+av1DwMAA+/QGLyZw=" crossorigin="anonymous"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/scholar-icons@1.0.3/css/scholar-icons.css" integrity="sha256-VY3hHVj/hNX3fYG6wtbA6TcKJQl7+FthzGSyIB64klY=" crossorigin="anonymous"> <link defer rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Roboto+Slab:100,300,400,500,700|Material+Icons&amp;display=swap"> <link defer rel="stylesheet" href="/assets/css/jekyll-pygments-themes-github.css?v=591dab5a4e56573bf4ef7fd332894c99" media="" id="highlight_theme_light"> <link rel="shortcut icon" href="data:image/svg+xml,&lt;svg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%20100%20100%22&gt;&lt;text%20y=%22.9em%22%20font-size=%2290%22&gt;%F0%9F%A4%96&lt;/text&gt;&lt;/svg&gt;"> <link rel="stylesheet" href="/assets/css/main.css?v=3116ba77db9ee1581d05bb3e86fbf7f1"> <link rel="canonical" href="https://ryandonald.dev/projects/05_dqn/"> <script src="/assets/js/theme.js?v=5286c3e4c334d0ecb8fc0c40ff4fa7ec"></script> <link defer rel="stylesheet" href="/assets/css/jekyll-pygments-themes-native.css?v=5847e5ed4a4568527aa6cfab446049ca" media="none" id="highlight_theme_dark"> <script>
+    initTheme();
+  </script> </head> <body class="fixed-top-nav "> <header> <nav id="navbar" class="navbar navbar-light navbar-expand-sm fixed-top" role="navigation"> <div class="container"> <a class="navbar-brand title font-weight-lighter" href="/"> Ryan Donald </a> <button class="navbar-toggler collapsed navbar-toggler-main" type="button" data-nav-toggle="navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation"> <span class="sr-only">Toggle navigation</span> <span class="icon-bar top-bar"></span> <span class="icon-bar middle-bar"></span> <span class="icon-bar bottom-bar"></span> </button> <div class="collapse navbar-collapse navbar-collapse-main" id="navbarNav"> <ul class="navbar-nav navbar-menu-list flex-nowrap"> <li class="nav-item "> <a class="nav-link" href="/">About </a> </li> <li class="nav-item "> <a class="nav-link" href="/publications/">Publications </a> </li> <li class="nav-item active"> <a class="nav-link" href="/projects/">Projects <span class="sr-only">(current)</span> </a> </li> <li class="nav-item "> <a class="nav-link" href="/cv/">CV </a> </li> <li class="nav-item"> <button id="search-toggle" type="button" title="Search" aria-label="Open search"> <span class="nav-link">ctrl k <i class="fa-solid fa-magnifying-glass"></i></span> </button> </li> <li class="toggle-container"> <button id="light-toggle" type="button" title="Change theme" aria-label="Change color theme"> <i class="fa-half-sun-moon" id="light-toggle-system"></i> <i class="fa-solid fa-moon" id="light-toggle-dark"></i> <i class="fa-solid fa-sun" id="light-toggle-light"></i> </button> </li> </ul> </div> </div> </nav> <progress id="progress" value="0"> <div class="progress-container"> <span class="progress-bar"></span> </div> </progress> </header> <div class="container mt-5" role="main"> <div class="post"> <header class="post-header"> <h1 class="post-title">Deep Q-Network</h1> <p class="post-description">A DQN implementation trained on the Cart Pole Gymnasium environment</p> </header> <article> <p>This notebook contains my implementation of a Deep-Q Network, tested within the Cart Pole Gymnasium environment.</p> <p>This environment can be found here: https://gymnasium.farama.org/environments/classic_control/cart_pole/</p> <p>In this environment, the robot is tasked with balancing a pole attached at one end to a cart, which is on a frictionless track. Each time step the robot has the option to apply a fixed force to the cart in either the left or right hand direction. These are the only two options, and the robot must choose one each timestep. If the cart exits the arena on either the left or right hand side, or the angle between the pole and the vertical axes exceeds a set value, the episode will terminate. Within this implementation, each timestep the robot receives a reward of +1.</p> <div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="n">numpy</span> <span class="k">as</span> <span class="n">np</span>
+<span class="kn">import</span> <span class="n">gymnasium</span> <span class="k">as</span> <span class="n">gym</span>
+<span class="kn">from</span> <span class="n">collections</span> <span class="kn">import</span> <span class="n">deque</span><span class="p">,</span> <span class="n">namedtuple</span>
+<span class="kn">import</span> <span class="n">matplotlib.pyplot</span> <span class="k">as</span> <span class="n">plt</span>
+
+<span class="kn">import</span> <span class="n">tensorflow</span> <span class="k">as</span> <span class="n">tf</span>
+<span class="kn">from</span> <span class="n">tensorflow.keras</span> <span class="kn">import</span> <span class="n">Sequential</span>
+<span class="kn">from</span> <span class="n">tensorflow.keras.layers</span> <span class="kn">import</span> <span class="n">Dense</span><span class="p">,</span> <span class="n">Input</span>
+<span class="kn">from</span> <span class="n">tensorflow.keras.losses</span> <span class="kn">import</span> <span class="n">MSE</span>
+<span class="kn">from</span> <span class="n">tensorflow.keras.optimizers</span> <span class="kn">import</span> <span class="n">Adam</span>
+</code></pre></div></div> <p>Parameters for the Neural Networks, Experience Buffer, and Learning algorithm.</p> <div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">MEMORY_SIZE</span> <span class="o">=</span> <span class="mi">50_000</span>
+<span class="n">STEPS_PER_UPDATE</span> <span class="o">=</span> <span class="mi">4</span>
+<span class="n">ALPHA</span> <span class="o">=</span> <span class="mf">0.001</span>
+<span class="n">GAMMA</span> <span class="o">=</span> <span class="mf">0.95</span>
+<span class="n">TAU</span> <span class="o">=</span> <span class="mf">0.01</span>
+<span class="n">BATCH_SIZE</span> <span class="o">=</span> <span class="mi">64</span>
+
+<span class="n">epsilon</span> <span class="o">=</span> <span class="mf">1.0</span>
+<span class="n">decay</span> <span class="o">=</span> <span class="mf">0.995</span>
+</code></pre></div></div> <p>Testing the environment, observation shape, state shape, and number of actions.</p> <div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">env</span> <span class="o">=</span> <span class="n">gym</span><span class="p">.</span><span class="nf">make</span><span class="p">(</span><span class="sh">"</span><span class="s">CartPole-v1</span><span class="sh">"</span><span class="p">)</span>
+<span class="n">env</span><span class="p">.</span><span class="nf">reset</span><span class="p">()</span>
+
+<span class="n">observation_space</span> <span class="o">=</span> <span class="n">env</span><span class="p">.</span><span class="n">observation_space</span>
+<span class="n">action_space</span> <span class="o">=</span> <span class="n">env</span><span class="p">.</span><span class="n">action_space</span>
+<span class="n">state_shape</span> <span class="o">=</span> <span class="n">observation_space</span><span class="p">.</span><span class="n">shape</span>
+<span class="n">num_actions</span> <span class="o">=</span> <span class="n">env</span><span class="p">.</span><span class="n">action_space</span><span class="p">.</span><span class="n">n</span>
+
+<span class="nf">print</span><span class="p">(</span><span class="sa">f</span><span class="sh">"</span><span class="s">Observation space: </span><span class="si">{</span><span class="n">observation_space</span><span class="si">}</span><span class="sh">"</span><span class="p">)</span>
+<span class="nf">print</span><span class="p">(</span><span class="sa">f</span><span class="sh">"</span><span class="s">Action space: </span><span class="si">{</span><span class="n">action_space</span><span class="si">}</span><span class="sh">"</span><span class="p">)</span>
+<span class="nf">print</span><span class="p">(</span><span class="sa">f</span><span class="sh">"</span><span class="s">State shape: </span><span class="si">{</span><span class="n">state_shape</span><span class="si">}</span><span class="sh">"</span><span class="p">)</span>
+<span class="nf">print</span><span class="p">(</span><span class="sa">f</span><span class="sh">"</span><span class="s">Number of actions: </span><span class="si">{</span><span class="n">num_actions</span><span class="si">}</span><span class="sh">"</span><span class="p">)</span>
+
+<span class="n">s_prime</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">terminated</span><span class="p">,</span> <span class="n">truncated</span><span class="p">,</span> <span class="n">info</span> <span class="o">=</span> <span class="n">env</span><span class="p">.</span><span class="nf">step</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+<span class="nf">print</span><span class="p">(</span><span class="sa">f</span><span class="sh">"</span><span class="s">Next state: </span><span class="si">{</span><span class="n">s_prime</span><span class="si">}</span><span class="sh">"</span><span class="p">)</span>
+<span class="nf">print</span><span class="p">(</span><span class="sa">f</span><span class="sh">"</span><span class="s">Reward: </span><span class="si">{</span><span class="n">r</span><span class="si">}</span><span class="sh">"</span><span class="p">)</span>
+<span class="nf">print</span><span class="p">(</span><span class="sa">f</span><span class="sh">"</span><span class="s">Terminated: </span><span class="si">{</span><span class="n">terminated</span><span class="si">}</span><span class="sh">"</span><span class="p">)</span>
+<span class="nf">print</span><span class="p">(</span><span class="sa">f</span><span class="sh">"</span><span class="s">Truncated: </span><span class="si">{</span><span class="n">truncated</span><span class="si">}</span><span class="sh">"</span><span class="p">)</span>
+<span class="nf">print</span><span class="p">(</span><span class="sa">f</span><span class="sh">"</span><span class="s">Info: </span><span class="si">{</span><span class="n">info</span><span class="si">}</span><span class="sh">"</span><span class="p">)</span>
+</code></pre></div></div> <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Observation space: Box([-4.8               -inf -0.41887903        -inf], [4.8               inf 0.41887903        inf], (4,), float32)
+Action space: Discrete(2)
+State shape: (4,)
+Number of actions: 2
+Next state: [-0.04720804 -0.24369821 -0.04326152  0.32730305]
+Reward: 1.0
+Terminated: False
+Truncated: False
+Info: {}
+</code></pre></div></div> <p>Feed forward neural networks in the following form:</p> <ul> <li>State space as input layer</li> <li>Dense layer of size 64, ReLU activation</li> <li>Output layer of size actions, linear activation</li> </ul> <p>There are two neural networks, as shown in “Implementing the Deep-Q Network”, where one is older and used to calculate the Q-Value for the next state.</p> <div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">inputs</span> <span class="o">=</span> <span class="nc">Input</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">state_shape</span><span class="p">))</span>
+<span class="n">q_network</span> <span class="o">=</span> <span class="nc">Sequential</span><span class="p">([</span>
+    <span class="n">inputs</span><span class="p">,</span>
+    <span class="nc">Dense</span><span class="p">(</span><span class="mi">64</span><span class="p">,</span> <span class="n">activation</span><span class="o">=</span><span class="sh">'</span><span class="s">relu</span><span class="sh">'</span><span class="p">),</span>
+    <span class="nc">Dense</span><span class="p">(</span><span class="n">num_actions</span><span class="p">,</span> <span class="n">activation</span><span class="o">=</span><span class="sh">'</span><span class="s">linear</span><span class="sh">'</span><span class="p">)</span>
+<span class="p">])</span>
+
+<span class="n">q_hat_network</span> <span class="o">=</span> <span class="nc">Sequential</span><span class="p">([</span>
+    <span class="n">inputs</span><span class="p">,</span>
+    <span class="nc">Dense</span><span class="p">(</span><span class="mi">64</span><span class="p">,</span> <span class="n">activation</span><span class="o">=</span><span class="sh">'</span><span class="s">relu</span><span class="sh">'</span><span class="p">),</span>
+    <span class="nc">Dense</span><span class="p">(</span><span class="n">num_actions</span><span class="p">,</span> <span class="n">activation</span><span class="o">=</span><span class="sh">'</span><span class="s">linear</span><span class="sh">'</span><span class="p">)</span>
+<span class="p">])</span>
+
+<span class="n">optimizer</span> <span class="o">=</span> <span class="nc">Adam</span><span class="p">(</span><span class="n">learning_rate</span><span class="o">=</span><span class="n">ALPHA</span><span class="p">)</span>
+</code></pre></div></div> <p>Named tuple for easier tracking and storage of each time-step in the experience buffer. This allows us to index each value as “experience.state” instead of using direct indexes such as “experience[0]”, for easier code readability later on.</p> <div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">experience</span> <span class="o">=</span> <span class="nf">namedtuple</span><span class="p">(</span><span class="sh">"</span><span class="s">Experience</span><span class="sh">"</span><span class="p">,</span> <span class="n">field_names</span><span class="o">=</span><span class="p">[</span><span class="sh">"</span><span class="s">state</span><span class="sh">"</span><span class="p">,</span> <span class="sh">"</span><span class="s">action</span><span class="sh">"</span><span class="p">,</span> <span class="sh">"</span><span class="s">reward</span><span class="sh">"</span><span class="p">,</span> <span class="sh">"</span><span class="s">next_state</span><span class="sh">"</span><span class="p">,</span> <span class="sh">"</span><span class="s">terminal_state</span><span class="sh">"</span><span class="p">])</span>
+</code></pre></div></div> <p>According to: https://www.tensorflow.org/agents/tutorials/0_intro_rl</p> <p>Loss for DQN is:</p> <ul> <li> <p>$L_i (\theta_i) = E_{s,a,r,s’~p(.)} [(y_i - Q(s,a,theta_i))^2]$</p> </li> <li> <p>$y_i = r + \gamma max_{a’} Q(s’, a’, theta_{i-1})$</p> </li> </ul> <p>mini-batch replay is used for experience replay. $x$ transitions are placed into a buffer, then all of these transitions are used to compute loss and gradient</p> <div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">loss_values</span><span class="p">(</span><span class="n">experiences</span><span class="p">,</span> <span class="n">gamma</span><span class="p">,</span> <span class="n">q_network</span><span class="p">,</span> <span class="n">q_hat_network</span><span class="p">):</span>
+    <span class="c1"># Unpack the replay buffer
+</span>    <span class="n">states</span><span class="p">,</span> <span class="n">actions</span><span class="p">,</span> <span class="n">rewards</span><span class="p">,</span> <span class="n">next_states</span><span class="p">,</span> <span class="n">terminal_states</span> <span class="o">=</span> <span class="n">experiences</span> 
+    
+    <span class="c1"># Calculate the max Q-value for each state in next_states
+</span>    <span class="n">max_qsa</span> <span class="o">=</span> <span class="n">tf</span><span class="p">.</span><span class="nf">reduce_max</span><span class="p">(</span><span class="nf">q_hat_network</span><span class="p">(</span><span class="n">next_states</span><span class="p">),</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># Calculate the TD target, terminal_states stores if end of episode.
+</span>    <span class="c1"># y_i = R if episode terminates next step.
+</span>    <span class="c1"># y_i = R + gamma * max_a' Q(s', a') otherwise 
+</span>
+    <span class="n">y_targets</span> <span class="o">=</span> <span class="n">rewards</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">terminal_states</span><span class="p">)</span><span class="o">*</span><span class="n">gamma</span><span class="o">*</span><span class="n">max_qsa</span> 
+
+    <span class="c1"># Get the Q-values for the current states
+</span>    <span class="n">q_values</span> <span class="o">=</span> <span class="nf">q_network</span><span class="p">(</span><span class="n">states</span><span class="p">)</span>
+
+    <span class="c1"># Find the Q_Values for each state
+</span>    <span class="n">q_values</span> <span class="o">=</span> <span class="n">tf</span><span class="p">.</span><span class="nf">gather_nd</span><span class="p">(</span><span class="n">q_values</span><span class="p">,</span> <span class="n">tf</span><span class="p">.</span><span class="nf">stack</span><span class="p">([</span><span class="n">tf</span><span class="p">.</span><span class="nf">range</span><span class="p">(</span><span class="n">q_values</span><span class="p">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
+                                                <span class="n">tf</span><span class="p">.</span><span class="nf">cast</span><span class="p">(</span><span class="n">actions</span><span class="p">,</span> <span class="n">tf</span><span class="p">.</span><span class="n">int32</span><span class="p">)],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+    
+    <span class="c1"># Loss is the mean-squared error of the TD-Error. TD-Error is the TD target minus the current Q-Value
+</span>    <span class="n">loss</span> <span class="o">=</span> <span class="nc">MSE</span><span class="p">(</span><span class="n">y_targets</span><span class="p">,</span> <span class="n">q_values</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">loss</span>
+</code></pre></div></div> <p>Function that updates $\hat{Q}$ with a soft update from Deep Deterministic Policy Gradient. Equation is found below:</p> <ul> <li>$\theta^{\hat{Q}} = \tau\theta^{Q} + (1 - \tau)\theta^{\hat{Q}}$</li> </ul> <p>with $\tau « 1$</p> <div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">update_q_hat</span><span class="p">(</span><span class="n">q_network</span><span class="p">,</span> <span class="n">q_hat_network</span><span class="p">):</span>
+    <span class="c1"># Update the target network weights based upon the main network weights and TAU value.
+</span>    <span class="nf">for </span><span class="p">(</span><span class="n">q_weights</span><span class="p">,</span> <span class="n">q_hat_weights</span><span class="p">)</span> <span class="ow">in</span> <span class="nf">zip</span><span class="p">(</span><span class="n">q_network</span><span class="p">.</span><span class="n">weights</span><span class="p">,</span> <span class="n">q_hat_network</span><span class="p">.</span><span class="n">weights</span><span class="p">):</span>
+        <span class="n">q_hat_weights</span><span class="p">.</span><span class="nf">assign</span><span class="p">(</span><span class="n">TAU</span> <span class="o">*</span> <span class="n">q_weights</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">TAU</span><span class="p">)</span> <span class="o">*</span> <span class="n">q_hat_weights</span><span class="p">)</span>
+</code></pre></div></div> <p>Functions which performs the gradient descent used for learning new weights within the Q network.</p> <div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nd">@tf.function</span>
+<span class="k">def</span> <span class="nf">learn</span><span class="p">(</span><span class="n">experiences</span><span class="p">,</span> <span class="n">gamma</span><span class="p">):</span>
+
+    <span class="c1"># Computes the values for the loss function
+</span>    <span class="k">with</span> <span class="n">tf</span><span class="p">.</span><span class="nc">GradientTape</span><span class="p">()</span> <span class="k">as</span> <span class="n">tape</span><span class="p">:</span>
+        <span class="n">loss</span> <span class="o">=</span> <span class="nf">loss_values</span><span class="p">(</span><span class="n">experiences</span><span class="p">,</span> <span class="n">gamma</span><span class="p">,</span> <span class="n">q_network</span><span class="p">,</span> <span class="n">q_hat_network</span><span class="p">)</span>
+
+        <span class="c1"># Compute the gradients of the loss function
+</span>        <span class="n">gradients</span> <span class="o">=</span> <span class="n">tape</span><span class="p">.</span><span class="nf">gradient</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="n">q_network</span><span class="p">.</span><span class="n">trainable_variables</span><span class="p">)</span>
+
+        <span class="c1"># Update the weights of the q_network
+</span>        <span class="n">optimizer</span><span class="p">.</span><span class="nf">apply_gradients</span><span class="p">(</span><span class="nf">zip</span><span class="p">(</span><span class="n">gradients</span><span class="p">,</span> <span class="n">q_network</span><span class="p">.</span><span class="n">trainable_variables</span><span class="p">))</span>
+
+        <span class="c1"># Update the target_q_network weights based upon q_network weights and TAU value. 
+</span>        <span class="c1"># Known as a "soft update". used in Deep Deterministic Policy Gradient
+</span>        <span class="c1"># This allows the target network to slowly track the learned network, increasing stability
+</span>
+        <span class="nf">update_q_hat</span><span class="p">(</span><span class="n">q_network</span><span class="p">,</span> <span class="n">q_hat_network</span><span class="p">)</span>
+</code></pre></div></div> <p>Calculates the action based upon a given set of Q values and an $\epsilon$ value in an $\epsilon$-greedy policy.</p> <div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">action</span><span class="p">(</span><span class="n">q_values</span><span class="p">,</span> <span class="n">epsilon</span><span class="p">):</span>
+    <span class="c1"># Epsilon-greedy action selection
+</span>    <span class="k">if</span> <span class="n">np</span><span class="p">.</span><span class="n">random</span><span class="p">.</span><span class="nf">rand</span><span class="p">()</span> <span class="o">&lt;</span> <span class="n">epsilon</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">np</span><span class="p">.</span><span class="n">random</span><span class="p">.</span><span class="nf">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">q_values</span><span class="p">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">np</span><span class="p">.</span><span class="nf">argmax</span><span class="p">(</span><span class="n">q_values</span><span class="p">)</span>
+</code></pre></div></div> <p>Randomly samples a input experience data set of $BATCH_SIZE$ experiences from the experience buffer, which is then input into the above $learn()$ function</p> <div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">get_batch</span><span class="p">(</span><span class="n">experiences</span><span class="p">):</span>
+    <span class="c1"># Randomly sample from experience buffer
+</span>    <span class="n">batches</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="n">random</span><span class="p">.</span><span class="nf">choice</span><span class="p">(</span><span class="nf">len</span><span class="p">(</span><span class="n">experiences</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="n">BATCH_SIZE</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+
+    <span class="c1"># Arrays for each element in the experience tuple for the entire batch
+</span>    <span class="n">states</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="nf">array</span><span class="p">([</span><span class="n">experiences</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">state</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">batches</span><span class="p">],</span> <span class="n">np</span><span class="p">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">actions</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="nf">array</span><span class="p">([</span><span class="n">experiences</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">action</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">batches</span><span class="p">],</span> <span class="n">np</span><span class="p">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">rewards</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="nf">array</span><span class="p">([</span><span class="n">experiences</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">reward</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">batches</span><span class="p">],</span> <span class="n">np</span><span class="p">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">next_states</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="nf">array</span><span class="p">([</span><span class="n">experiences</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">next_state</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">batches</span><span class="p">],</span> <span class="n">np</span><span class="p">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">terminal_states</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="nf">array</span><span class="p">([</span><span class="n">experiences</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">terminal_state</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">batches</span><span class="p">]).</span><span class="nf">astype</span><span class="p">(</span><span class="n">np</span><span class="p">.</span><span class="n">uint8</span><span class="p">)</span>
+
+    <span class="c1"># Converts the arrays to tensors
+</span>    <span class="n">states_tensor</span> <span class="o">=</span> <span class="n">tf</span><span class="p">.</span><span class="nf">convert_to_tensor</span><span class="p">(</span><span class="n">states</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="p">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">actions_tensor</span> <span class="o">=</span> <span class="n">tf</span><span class="p">.</span><span class="nf">convert_to_tensor</span><span class="p">(</span><span class="n">actions</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="p">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">rewards_tensor</span> <span class="o">=</span> <span class="n">tf</span><span class="p">.</span><span class="nf">convert_to_tensor</span><span class="p">(</span><span class="n">rewards</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="p">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">next_states_tensor</span> <span class="o">=</span> <span class="n">tf</span><span class="p">.</span><span class="nf">convert_to_tensor</span><span class="p">(</span><span class="n">next_states</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="p">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">terminal_states_tensor</span> <span class="o">=</span> <span class="n">tf</span><span class="p">.</span><span class="nf">convert_to_tensor</span><span class="p">(</span><span class="n">terminal_states</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="p">.</span><span class="n">float32</span><span class="p">)</span>
+
+    <span class="c1"># Return the tensors as a tuple.
+</span>    <span class="nf">return </span><span class="p">(</span><span class="n">states_tensor</span><span class="p">,</span> <span class="n">actions_tensor</span><span class="p">,</span> <span class="n">rewards_tensor</span><span class="p">,</span> <span class="n">next_states_tensor</span><span class="p">,</span> <span class="n">terminal_states_tensor</span><span class="p">)</span>
+</code></pre></div></div> <p>The code below runs the model on a set number of episodes, $num_episodes$</p> <div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">num_episodes</span> <span class="o">=</span> <span class="mi">2000</span>
+<span class="n">max_steps</span> <span class="o">=</span> <span class="mi">1000</span>
+<span class="n">episode_rewards</span> <span class="o">=</span> <span class="p">[]</span>
+
+<span class="n">memory_buffer</span> <span class="o">=</span> <span class="nf">deque</span><span class="p">(</span><span class="n">maxlen</span><span class="o">=</span><span class="n">MEMORY_SIZE</span><span class="p">)</span>
+
+<span class="n">q_hat_network</span><span class="p">.</span><span class="nf">set_weights</span><span class="p">(</span><span class="n">q_network</span><span class="p">.</span><span class="nf">get_weights</span><span class="p">())</span>
+
+<span class="n">epsilon</span> <span class="o">=</span> <span class="mf">1.0</span>
+
+<span class="k">for</span> <span class="n">episode</span> <span class="ow">in</span> <span class="n">np</span><span class="p">.</span><span class="nf">arange</span><span class="p">(</span><span class="n">num_episodes</span><span class="p">):</span>
+
+    <span class="c1"># Reset env and reward for current episode
+</span>    <span class="n">s</span><span class="p">,</span> <span class="n">info</span> <span class="o">=</span> <span class="n">env</span><span class="p">.</span><span class="nf">reset</span><span class="p">()</span>
+    <span class="n">total_r</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">np</span><span class="p">.</span><span class="nf">arange</span><span class="p">(</span><span class="n">max_steps</span><span class="p">):</span>
+
+        <span class="c1"># Calculate Q-values for the current state
+</span>        <span class="n">q_values</span> <span class="o">=</span> <span class="nf">q_network</span><span class="p">(</span><span class="n">np</span><span class="p">.</span><span class="nf">expand_dims</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
+
+        <span class="c1"># Epsilon-greedy action selection
+</span>        <span class="n">a</span> <span class="o">=</span> <span class="nf">action</span><span class="p">(</span><span class="n">q_values</span><span class="p">,</span> <span class="n">epsilon</span><span class="p">)</span>
+
+        <span class="c1"># Observations of the taken action
+</span>        <span class="n">s_prime</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">terminated</span><span class="p">,</span> <span class="n">truncated</span><span class="p">,</span> <span class="n">info</span> <span class="o">=</span> <span class="n">env</span><span class="p">.</span><span class="nf">step</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+
+        <span class="c1"># Running sum of rewards for episode
+</span>        <span class="n">total_r</span> <span class="o">+=</span> <span class="n">r</span>
+
+        <span class="c1"># Append experience to memory buffer
+</span>        <span class="n">memory_buffer</span><span class="p">.</span><span class="nf">append</span><span class="p">(</span><span class="nf">experience</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">s_prime</span><span class="p">,</span> <span class="n">terminated</span><span class="p">))</span>
+
+        <span class="c1"># Checks every four time steps if the memory buffer has enough experiences, if so update the Q-network
+</span>        <span class="k">if</span> <span class="n">t</span> <span class="o">%</span> <span class="n">STEPS_PER_UPDATE</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="nf">len</span><span class="p">(</span><span class="n">memory_buffer</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">BATCH_SIZE</span><span class="p">:</span>
+
+            <span class="c1"># Randomly sample from experience buffer and learn from the batch
+</span>            <span class="n">experiences</span> <span class="o">=</span> <span class="nf">get_batch</span><span class="p">(</span><span class="n">memory_buffer</span><span class="p">)</span>
+            <span class="nf">learn</span><span class="p">(</span><span class="n">experiences</span><span class="p">,</span> <span class="n">GAMMA</span><span class="p">)</span>
+
+        <span class="c1"># Update state variable for next iteration
+</span>        <span class="n">s</span> <span class="o">=</span> <span class="n">s_prime</span><span class="p">.</span><span class="nf">copy</span><span class="p">()</span>
+
+        <span class="c1"># End the current episode if the environment terminated or ran out of time
+</span>        <span class="k">if</span> <span class="n">terminated</span> <span class="ow">or</span> <span class="n">truncated</span><span class="p">:</span>
+            <span class="k">break</span>
+    
+    <span class="c1"># Decay epsilon until 0.1
+</span>    <span class="k">if</span> <span class="n">epsilon</span> <span class="o">&gt;</span> <span class="mf">0.1</span><span class="p">:</span>
+        <span class="n">epsilon</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="nf">maximum</span><span class="p">(</span><span class="n">epsilon</span><span class="o">*</span><span class="n">decay</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">)</span>
+    
+    <span class="c1"># Track episode rewards
+</span>    <span class="n">episode_rewards</span><span class="p">.</span><span class="nf">append</span><span class="p">(</span><span class="n">total_r</span><span class="p">)</span>
+
+    <span class="c1"># Every 100 episodes print out the reward of the last episode and the average of the last 100.
+</span>    <span class="k">if</span> <span class="n">episode</span> <span class="o">%</span> <span class="mi">100</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">last_100_average</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="nf">mean</span><span class="p">(</span><span class="n">episode_rewards</span><span class="p">[</span><span class="o">-</span><span class="mi">100</span><span class="p">:])</span>
+        <span class="nf">print</span><span class="p">(</span><span class="sa">f</span><span class="sh">"</span><span class="s">Episode </span><span class="si">{</span><span class="n">episode</span><span class="si">}</span><span class="s">, Reward: </span><span class="si">{</span><span class="n">total_r</span><span class="si">}</span><span class="s">, Last 100 Average: </span><span class="si">{</span><span class="n">last_100_average</span><span class="si">}</span><span class="sh">"</span><span class="p">)</span>
+
+    <span class="c1"># If the average reward of the last 50 episodes is greater than 225, stop training
+</span>    <span class="nf">if </span><span class="p">(</span><span class="n">np</span><span class="p">.</span><span class="nf">mean</span><span class="p">(</span><span class="n">episode_rewards</span><span class="p">[</span><span class="o">-</span><span class="mi">50</span><span class="p">:])</span> <span class="o">&gt;</span> <span class="mi">225</span><span class="p">):</span>
+        <span class="n">last_50_average</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="nf">mean</span><span class="p">(</span><span class="n">episode_rewards</span><span class="p">[</span><span class="o">-</span><span class="mi">50</span><span class="p">:])</span>
+        <span class="nf">print</span><span class="p">(</span><span class="sa">f</span><span class="sh">"</span><span class="s">Solved with </span><span class="si">{</span><span class="n">last_50_average</span><span class="si">}</span><span class="s"> reward in </span><span class="si">{</span><span class="n">episode</span><span class="si">}</span><span class="s"> episodes!</span><span class="sh">"</span><span class="p">)</span>
+        <span class="k">break</span>
+
+<span class="n">env</span><span class="p">.</span><span class="nf">close</span><span class="p">()</span>
+</code></pre></div></div> <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Episode 0, Reward: 15.0, Last 100 Average: 15.0
+Episode 100, Reward: 15.0, Last 100 Average: 18.04
+Episode 200, Reward: 48.0, Last 100 Average: 28.16
+Solved with 226.06 reward in 293 episodes!
+</code></pre></div></div> <p>The code below simply runs the environment based upon the learned Q-Values. The performance of this should be equal or better than the training runs above, as we are removing the randomness in the action choice from the $\epsilon$-greedy policy.</p> <div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">env</span> <span class="o">=</span> <span class="n">gym</span><span class="p">.</span><span class="nf">make</span><span class="p">(</span><span class="sh">"</span><span class="s">CartPole-v1</span><span class="sh">"</span><span class="p">,</span> <span class="n">render_mode</span><span class="o">=</span><span class="sh">'</span><span class="s">human</span><span class="sh">'</span><span class="p">)</span>
+
+<span class="k">for</span> <span class="n">episode</span> <span class="ow">in</span> <span class="n">np</span><span class="p">.</span><span class="nf">arange</span><span class="p">(</span><span class="mi">2</span><span class="p">):</span>
+
+    <span class="n">s</span><span class="p">,</span> <span class="n">info</span> <span class="o">=</span> <span class="n">env</span><span class="p">.</span><span class="nf">reset</span><span class="p">()</span>
+
+    <span class="n">total_r</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">np</span><span class="p">.</span><span class="nf">arange</span><span class="p">(</span><span class="n">max_steps</span><span class="p">):</span>
+
+        <span class="n">q_values</span> <span class="o">=</span> <span class="nf">q_network</span><span class="p">(</span><span class="n">np</span><span class="p">.</span><span class="nf">expand_dims</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
+
+        <span class="n">a</span> <span class="o">=</span> <span class="nf">action</span><span class="p">(</span><span class="n">q_values</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+
+        <span class="n">s_prime</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">terminated</span><span class="p">,</span> <span class="n">truncated</span><span class="p">,</span> <span class="n">info</span> <span class="o">=</span> <span class="n">env</span><span class="p">.</span><span class="nf">step</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+
+        <span class="n">total_r</span> <span class="o">+=</span> <span class="n">r</span>
+        
+        <span class="n">s</span> <span class="o">=</span> <span class="n">s_prime</span><span class="p">.</span><span class="nf">copy</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">terminated</span> <span class="ow">or</span> <span class="n">truncated</span><span class="p">:</span>
+            <span class="k">break</span>
+        
+<span class="n">env</span><span class="p">.</span><span class="nf">close</span><span class="p">()</span>
+</code></pre></div></div> <p>Below the results over the training are shown.</p> <div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">window</span> <span class="o">=</span> <span class="mi">20</span>
+<span class="n">smoothed_rewards</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="nf">convolve</span><span class="p">(</span><span class="n">episode_rewards</span><span class="p">,</span> <span class="n">np</span><span class="p">.</span><span class="nf">ones</span><span class="p">(</span><span class="n">window</span><span class="p">)</span><span class="o">/</span><span class="n">window</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="sh">'</span><span class="s">valid</span><span class="sh">'</span><span class="p">)</span>
+
+<span class="n">plt</span><span class="p">.</span><span class="nf">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
+<span class="n">plt</span><span class="p">.</span><span class="nf">plot</span><span class="p">(</span><span class="n">episode_rewards</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sh">'</span><span class="s">Episode Reward</span><span class="sh">'</span><span class="p">)</span>
+<span class="n">plt</span><span class="p">.</span><span class="nf">plot</span><span class="p">(</span><span class="n">np</span><span class="p">.</span><span class="nf">arange</span><span class="p">(</span><span class="n">window</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="nf">len</span><span class="p">(</span><span class="n">episode_rewards</span><span class="p">)),</span> <span class="n">smoothed_rewards</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="sh">'</span><span class="s">Smoothed Reward (window=</span><span class="si">{</span><span class="n">window</span><span class="si">}</span><span class="s">)</span><span class="sh">'</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="sh">'</span><span class="s">orange</span><span class="sh">'</span><span class="p">)</span>
+<span class="n">plt</span><span class="p">.</span><span class="nf">xlabel</span><span class="p">(</span><span class="sh">"</span><span class="s">Episode</span><span class="sh">"</span><span class="p">)</span>
+<span class="n">plt</span><span class="p">.</span><span class="nf">ylabel</span><span class="p">(</span><span class="sh">"</span><span class="s">Reward</span><span class="sh">"</span><span class="p">)</span>
+<span class="n">plt</span><span class="p">.</span><span class="nf">title</span><span class="p">(</span><span class="sh">"</span><span class="s">Episode Rewards and Smoothed Rewards Over Time</span><span class="sh">"</span><span class="p">)</span>
+<span class="n">plt</span><span class="p">.</span><span class="nf">legend</span><span class="p">()</span>
+<span class="n">plt</span><span class="p">.</span><span class="nf">show</span><span class="p">()</span>
+</code></pre></div></div> <p><img src="/assets/img/Deep-Q-Network_25_0.png" alt="png"></p> </article> </div> </div> <footer class="fixed-bottom" role="contentinfo"> <div class="container mt-0"> © Copyright 2026 Ryan Donald. Powered by <a href="https://jekyllrb.com/" target="_blank" rel="external nofollow noopener">Jekyll</a> with <a href="https://github.com/alshedivat/al-folio" rel="external nofollow noopener" target="_blank">al-folio</a> theme. Hosted by <a href="https://pages.github.com/" target="_blank" rel="external nofollow noopener">GitHub Pages</a>. </div> </footer> <script>
+  window.alFolio = {
+    compatBootstrap: false
+  };
+</script> <script src="/assets/js/nav-toggle.js?v=141bd79a73ebc0f0b6ea58e440ae79fc"></script> <script defer src="https://cdn.jsdelivr.net/npm/masonry-layout@4.2.2/dist/masonry.pkgd.min.js" integrity="sha256-Nn1q/fx0H7SNLZMQ5Hw5JLaTRZp0yILA/FRexe19VdI=" crossorigin="anonymous"></script> <script defer src="https://cdn.jsdelivr.net/npm/imagesloaded@5.0.0/imagesloaded.pkgd.min.js" integrity="sha256-htrLFfZJ6v5udOG+3kNLINIKh2gvoKqwEhHYfTTMICc=" crossorigin="anonymous"></script> <script defer src="/assets/js/masonry.js?v=e49affc7bd2646f6acdad1dbe02c2359" type="text/javascript"></script> <script defer type="text/javascript" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js" integrity="sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI=" crossorigin="anonymous"></script> <script src="/assets/al_math/js/mathjax-setup.js"></script> <script src="/assets/js/tooltips-setup.js?v=fe487e99db6c43751e6e7bdb2d6a0611"></script> <script src="/assets/js/no_defer.js?v=53b1b1a645525975c963ce8bf8bfefcf"></script> <script defer src="/assets/js/common.js?v=87baac90f765f2f3362dcf6aaf312a8a"></script> <script defer src="/assets/js/copy_code.js?v=c8a01c11a92744d44b093fc3bda915df" type="text/javascript"></script> <script defer src="/assets/js/jupyter_new_tab.js?v=896d254890d9b47f0281f63bfccf0dee"></script> <script async src="https://d1bxh8uas1mnw7.cloudfront.net/assets/embed.js"></script> <script async src="https://badge.dimensions.ai/badge.js"></script> <script defer src="https://cdn.jsdelivr.net/npm/medium-zoom@1.1.0/dist/medium-zoom.min.js" integrity="sha256-ZgMyDAIYDYGxbcpJcfUnYwNevG/xi9OHKaR/8GK+jWc=" crossorigin="anonymous"></script> <script defer src="/assets/al_img_tools/js/zoom.js"></script> <script defer src="/assets/js/progress-bar.js?v=499464c5c63ced6cf7ad62509f1e2610" type="text/javascript"></script> <script src="https://cdn.jsdelivr.net/npm/vanilla-back-to-top@7.2.1/dist/vanilla-back-to-top.min.js" integrity="sha256-uMJJ3EoTyfRBoTbR+lrfu1uRQ87RZG8AR3cVNuQVeFg=" crossorigin="anonymous"></script> <script>
+    addBackToTop();
+  </script> <script type="module" src="/assets/al_search/js/search/ninja-keys.min.js"></script> <ninja-keys hidebreadcrumbs noautoloadmdicons placeholder="Type to start searching"></ninja-keys> <script src="/assets/al_search/js/search-setup.js"></script> <script>
+// get the ninja-keys element
+const ninja = document.querySelector('ninja-keys');
+
+// add the home and posts menu items
+ninja.data = [{
+    id: "nav-about",
+    title: "About",
+    section: "Navigation",
+    handler: () => {
+      window.location.href = "/";
+    },
+  },{id: "nav-publications",
+          title: "Publications",
+          description: "publications by categories in reversed chronological order. generated by jekyll-scholar.",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/publications/";
+          },
+        },{id: "nav-projects",
+          title: "Projects",
+          description: "Robotics, reinforcement learning, and hardware projects.",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/projects/";
+          },
+        },{id: "nav-cv",
+          title: "CV",
+          description: "Education, experience, publications, and skills.",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/cv/";
+          },
+        },{id: "projects-ppo-sim2real-on-the-so-arm101",
+          title: 'PPO Sim2Real on the SO-ARM101',
+          description: "Training PPO in Isaac Lab and deploying it on a real SO-ARM101, benchmarked against four established RL libraries",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/01_ppo_sim2real/";
+            },},{id: "projects-proximal-policy-optimization-in-isaac-lab",
+          title: 'Proximal Policy Optimization in Isaac Lab',
+          description: "My PPO implementation trained across a range of Isaac Lab manipulation and control tasks",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/02_ppo_isaaclab/";
+            },},{id: "projects-ppo-on-atari-pong",
+          title: 'PPO on Atari Pong',
+          description: "PPO implemented from scratch and trained on the ALE/Pong-v5 Gymnasium environment",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/03_ppo_atari/";
+            },},{id: "projects-ppo-on-lunar-lander",
+          title: 'PPO on Lunar Lander',
+          description: "PPO implemented from scratch and trained on the LunarLanderContinuous Gymnasium environment",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/04_ppo_lunar_lander/";
+            },},{id: "projects-deep-q-network",
+          title: 'Deep Q-Network',
+          description: "A DQN implementation trained on the Cart Pole Gymnasium environment",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/05_dqn/";
+            },},{id: "projects-reinforcement-learning-implementations",
+          title: 'Reinforcement Learning Implementations',
+          description: "Q-Learning, SARSA, Actor-Critic with eligibility traces, and Deep Q-Learning across Gymnasium environments",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/06_rl_implementations/";
+            },},{id: "projects-so-arm101-smolvla-finetuning",
+          title: 'SO-ARM101 SmolVLA Finetuning',
+          description: "Finetuning SmolVLA for real-world pick-and-place on the SO-ARM101",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/07_smolvla_finetune/";
+            },},{id: "projects-visual-odometry-and-visual-slam-on-kitti",
+          title: 'Visual Odometry and Visual SLAM on KITTI',
+          description: "A stereo visual odometry pipeline extended with keyframing, loop closure, and pose-graph optimization",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/08_visual_slam/";
+            },},{id: "projects-rrt-with-differential-drive-dynamics",
+          title: 'RRT* with Differential-Drive Dynamics',
+          description: "RRT* and kinodynamic RRT* implemented in Python notebooks",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/09_rrt_star/";
+            },},{id: "projects-pokerbot",
+          title: 'PokerBot',
+          description: "A Texas Hold&#39;em playing robot combining YOLOv8 card vision, a DQN poker agent, and a suction-cup arm",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/10_pokerbot/";
+            },},{id: "projects-animated-julia-and-fatou-sets-on-an-fpga",
+          title: 'Animated Julia and Fatou Sets on an FPGA',
+          description: "A VHDL VGA driver and fractal generator targeting an Intel DE10-Lite",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/11_fpga_julia_fatou/";
+            },},{id: "projects-underwater-robot-electrical-infrastructure",
+          title: 'Underwater Robot Electrical Infrastructure',
+          description: "Undergraduate capstone reviving an underwater robot&#39;s electrical systems and moving it onto ROS",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/12_capstone/";
+            },},{id: "projects-advent-of-code-2025",
+          title: 'Advent of Code 2025',
+          description: "My Python solutions to the 2025 Advent of Code challenges",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/13_advent_of_code/";
+            },},{
+        id: 'social-email',
+        title: 'email',
+        section: 'Socials',
+        handler: () => {
+          window.open("mailto:%72%79%61%6E%70%64%6F%6E%61%6C%64@%67%6D%61%69%6C.%63%6F%6D", "_blank");
+        },
+      },{
+        id: 'social-github',
+        title: 'GitHub',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://github.com/ryan-donald", "_blank");
+        },
+      },{
+        id: 'social-scholar',
+        title: 'Google Scholar',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://scholar.google.com/citations?user=Sy9M6-0AAAAJ", "_blank");
+        },
+      },{
+        id: 'social-rss',
+        title: 'RSS Feed',
+        section: 'Socials',
+        handler: () => {
+          window.open("/feed.xml", "_blank");
+        },
+      },{
+      id: 'light-theme',
+      title: 'Change theme to light',
+      description: 'Change the theme of the site to Light',
+      section: 'Theme',
+      handler: () => {
+        setThemeSetting("light");
+      },
+    },
+    {
+      id: 'dark-theme',
+      title: 'Change theme to dark',
+      description: 'Change the theme of the site to Dark',
+      section: 'Theme',
+      handler: () => {
+        setThemeSetting("dark");
+      },
+    },
+    {
+      id: 'system-theme',
+      title: 'Use system default theme',
+      description: 'Change the theme of the site to System Default',
+      section: 'Theme',
+      handler: () => {
+        setThemeSetting("system");
+      },
+    },];
+
+</script> <script src="/assets/al_search/js/shortcut-key.js"></script> </body> </html>

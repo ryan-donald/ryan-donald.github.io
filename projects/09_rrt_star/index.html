@@ -1,0 +1,684 @@
+<!DOCTYPE html> <html lang="en"> <head> <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"> <meta charset="utf-8"> <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"> <meta http-equiv="X-UA-Compatible" content="IE=edge"> <title> RRT* with Differential-Drive Dynamics | Ryan Donald </title> <meta name="author" content="Ryan Donald"> <meta name="description" content="RRT* and kinodynamic RRT* implemented in Python notebooks"> <meta name="keywords" content="robotics, reinforcement learning, sim2real, PPO, Isaac Lab, SLAM, manipulation"> <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https:; font-src 'self' data: https:; media-src 'self' https:; frame-src 'self' https:; connect-src 'self' https:;"> <style>
+  :root {
+    --max-content-width: 930px;
+  }
+</style> <link rel="stylesheet" href="/assets/css/tailwind.css?v=50c64c15cbb9fd1ce6056fdb8bcb4b62"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.2.0/css/all.min.css" integrity="sha256-MVopmdyC2tYTiJ8wlktf0uh0v4NgT+vNdyVFepi7Q0c=" crossorigin="anonymous"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/academicons@1.9.5/css/academicons.min.css" integrity="sha256-SzrCOBJbGVFMahewkgjwnApaV2+av1DwMAA+/QGLyZw=" crossorigin="anonymous"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/scholar-icons@1.0.3/css/scholar-icons.css" integrity="sha256-VY3hHVj/hNX3fYG6wtbA6TcKJQl7+FthzGSyIB64klY=" crossorigin="anonymous"> <link defer rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Roboto+Slab:100,300,400,500,700|Material+Icons&amp;display=swap"> <link defer rel="stylesheet" href="/assets/css/jekyll-pygments-themes-github.css?v=591dab5a4e56573bf4ef7fd332894c99" media="" id="highlight_theme_light"> <link rel="shortcut icon" href="data:image/svg+xml,&lt;svg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%20100%20100%22&gt;&lt;text%20y=%22.9em%22%20font-size=%2290%22&gt;%F0%9F%A4%96&lt;/text&gt;&lt;/svg&gt;"> <link rel="stylesheet" href="/assets/css/main.css?v=3116ba77db9ee1581d05bb3e86fbf7f1"> <link rel="canonical" href="https://ryandonald.dev/projects/09_rrt_star/"> <script src="/assets/js/theme.js?v=5286c3e4c334d0ecb8fc0c40ff4fa7ec"></script> <link defer rel="stylesheet" href="/assets/css/jekyll-pygments-themes-native.css?v=5847e5ed4a4568527aa6cfab446049ca" media="none" id="highlight_theme_dark"> <script>
+    initTheme();
+  </script> </head> <body class="fixed-top-nav "> <header> <nav id="navbar" class="navbar navbar-light navbar-expand-sm fixed-top" role="navigation"> <div class="container"> <a class="navbar-brand title font-weight-lighter" href="/"> Ryan Donald </a> <button class="navbar-toggler collapsed navbar-toggler-main" type="button" data-nav-toggle="navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation"> <span class="sr-only">Toggle navigation</span> <span class="icon-bar top-bar"></span> <span class="icon-bar middle-bar"></span> <span class="icon-bar bottom-bar"></span> </button> <div class="collapse navbar-collapse navbar-collapse-main" id="navbarNav"> <ul class="navbar-nav navbar-menu-list flex-nowrap"> <li class="nav-item "> <a class="nav-link" href="/">About </a> </li> <li class="nav-item "> <a class="nav-link" href="/publications/">Publications </a> </li> <li class="nav-item active"> <a class="nav-link" href="/projects/">Projects <span class="sr-only">(current)</span> </a> </li> <li class="nav-item "> <a class="nav-link" href="/cv/">CV </a> </li> <li class="nav-item"> <button id="search-toggle" type="button" title="Search" aria-label="Open search"> <span class="nav-link">ctrl k <i class="fa-solid fa-magnifying-glass"></i></span> </button> </li> <li class="toggle-container"> <button id="light-toggle" type="button" title="Change theme" aria-label="Change color theme"> <i class="fa-half-sun-moon" id="light-toggle-system"></i> <i class="fa-solid fa-moon" id="light-toggle-dark"></i> <i class="fa-solid fa-sun" id="light-toggle-light"></i> </button> </li> </ul> </div> </div> </nav> <progress id="progress" value="0"> <div class="progress-container"> <span class="progress-bar"></span> </div> </progress> </header> <div class="container mt-5" role="main"> <div class="post"> <header class="post-header"> <h1 class="post-title">RRT* with Differential-Drive Dynamics</h1> <p class="post-description">RRT* and kinodynamic RRT* implemented in Python notebooks</p> </header> <article> <p>I spent time investigating and researching the differences between RRT (Rapidly Exploring Random Tree), an algorithm I learned during an undergraduate robotics course which I also ended up as a Grader for, and a more improved solution intended to find better solutions, RRT* (Rapidly Exploring Random Tree Star). I vaguely knew that RRT* tended to result in better solutions, and that it was a more common path planning algorithm in robotics, but I did not know the details.</p> <p>In my research, I found that the two algorithms are very similar, with two key differences. The first of these is the largest, in that after sampling a new point and steering that point to the closest point, RRT* then rewires the tree by checking the local nodes, to see if any existing paths can be optimized by traversing through the new node. After a large number of samples, this allows the tree to tend towards the shortest straight line path from the start to any node. Second, typically in RRT once you find a path to the goal, you stop sampling as it is unlikely your path will get much better. In RRT*, due to the rewiring, after finding a path to the goal, you continue sampling as with more samples, the closer your path gets to the optimal path to the goal.</p> <p>Lastly, although theoretically this is the best straight line path, due to the shape and location of obstacles it is possible for this path to perform poorly with robots, as the path may not be smooth or physically possible due to the vehicle dynamics. This is why I also implemented RRT* with vehicle dynamics. Typically this is known as kinodynamic planning, which simply means we are involving the dynamics of the vehicle in the path planning as well. The main difference in this from typical RRT* is that the algorithm maintains a pose with each node as well, and to steer points, it randomly samples a number of forward and angular velocities within the bounds of the robot, and simulates that movement, and then chooses the commands which are closest to the sampled point.</p> <p>Below, I show two jupyter notebook files where I first implemented RRT*, and then in the second I implement RRT* with differential drive robot dynamics.</p> <div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">%</span><span class="n">matplotlib</span> <span class="n">widget</span>
+<span class="kn">import</span> <span class="n">numpy</span> <span class="k">as</span> <span class="n">np</span>
+<span class="kn">import</span> <span class="n">matplotlib.pyplot</span> <span class="k">as</span> <span class="n">plt</span>
+<span class="kn">import</span> <span class="n">matplotlib.animation</span> <span class="k">as</span> <span class="n">animation</span>
+</code></pre></div></div> <p>Below is the Node class, which is a simple data structure to represent each node in the RRT* tree, with the following member variables:</p> <ul> <li> <em>position</em>, x,y position pair</li> <li> <em>parent</em>, Node object represnting the parent Node in the RRT* tree</li> <li> <em>cost</em>, Distance along the tree from the start Node to this Node</li> </ul> <div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">class</span> <span class="nc">Node</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="n">position</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="n">self</span><span class="p">.</span><span class="n">position</span> <span class="o">=</span> <span class="n">position</span>
+        <span class="n">self</span><span class="p">.</span><span class="n">parent</span> <span class="o">=</span> <span class="n">parent</span>
+        <span class="n">self</span><span class="p">.</span><span class="n">cost</span> <span class="o">=</span> <span class="mf">0.0</span>
+</code></pre></div></div> <p>Below is the RRTStar class, which implements the RRT* algorithm. Within this class, there are various member variables and functions defined. This algorithm randomly samples points within a map, creating a tree for path planning in the map. If nodes are further away than a maximum distance, they will be moved closer to the node directly along a line connecting the sampled node and the nearest node. If this path is interrupted by an object, the node will not be added. The specific improvement of RRT* is that the parent of the new node is determined by checking the cost of each nearby node and choosing the parent which will result in the minimum cost. After this, it checks if any of the nearby nodes will benefit from having the new node as it’s parent node. Additionally, RRT* will continue sampling and updating the tree after a solution is found, converging towards an optimal path, unlike RRT which stops once a path is found.</p> <div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">class</span> <span class="nc">RRTStar</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">goal</span><span class="p">,</span> <span class="n">world_size</span><span class="p">,</span> <span class="n">obstacles</span><span class="o">=</span><span class="p">[],</span> <span class="n">step_size</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mi">5000</span><span class="p">):</span>
+        <span class="n">self</span><span class="p">.</span><span class="n">start</span> <span class="o">=</span> <span class="nc">Node</span><span class="p">(</span><span class="n">start</span><span class="p">)</span>
+        <span class="n">self</span><span class="p">.</span><span class="n">goal</span> <span class="o">=</span> <span class="nc">Node</span><span class="p">(</span><span class="n">goal</span><span class="p">)</span>
+        <span class="n">self</span><span class="p">.</span><span class="n">world_size</span> <span class="o">=</span> <span class="n">world_size</span>
+        <span class="n">self</span><span class="p">.</span><span class="n">step_size</span> <span class="o">=</span> <span class="n">step_size</span>
+        <span class="n">self</span><span class="p">.</span><span class="n">max_iter</span> <span class="o">=</span> <span class="n">max_iter</span>
+        <span class="n">self</span><span class="p">.</span><span class="n">obstacles</span> <span class="o">=</span> <span class="n">obstacles</span>
+        <span class="n">self</span><span class="p">.</span><span class="n">node_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">self</span><span class="p">.</span><span class="n">start</span><span class="p">]</span>
+        <span class="n">self</span><span class="p">.</span><span class="n">reached_goal</span> <span class="o">=</span> <span class="bp">False</span>
+
+    <span class="k">def</span> <span class="nf">generate_random_node</span><span class="p">(</span><span class="n">self</span><span class="p">):</span>
+        <span class="c1"># generate a random node within the map
+</span>        <span class="k">return</span> <span class="nc">Node</span><span class="p">(</span><span class="n">np</span><span class="p">.</span><span class="n">random</span><span class="p">.</span><span class="nf">uniform</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">self</span><span class="p">.</span><span class="n">world_size</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">2</span><span class="p">))</span>
+    
+    <span class="k">def</span> <span class="nf">steer</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="n">from_node</span><span class="p">,</span> <span class="n">to_node</span><span class="p">):</span>
+        <span class="c1"># calculate angle between from_node and to_node
+</span>        <span class="n">theta</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="nf">arctan2</span><span class="p">(</span><span class="n">to_node</span><span class="p">.</span><span class="n">position</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">from_node</span><span class="p">.</span><span class="n">position</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                           <span class="n">to_node</span><span class="p">.</span><span class="n">position</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">from_node</span><span class="p">.</span><span class="n">position</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        
+        <span class="c1"># clip distance to step_size
+</span>        <span class="k">if</span> <span class="n">np</span><span class="p">.</span><span class="n">linalg</span><span class="p">.</span><span class="nf">norm</span><span class="p">(</span><span class="n">to_node</span><span class="p">.</span><span class="n">position</span> <span class="o">-</span> <span class="n">from_node</span><span class="p">.</span><span class="n">position</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">self</span><span class="p">.</span><span class="n">step_size</span><span class="p">:</span>
+            <span class="n">new_position</span> <span class="o">=</span> <span class="n">to_node</span><span class="p">.</span><span class="n">position</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">new_position</span> <span class="o">=</span> <span class="n">from_node</span><span class="p">.</span><span class="n">position</span> <span class="o">+</span> <span class="n">self</span><span class="p">.</span><span class="n">step_size</span> <span class="o">*</span> <span class="n">np</span><span class="p">.</span><span class="nf">array</span><span class="p">([</span><span class="n">np</span><span class="p">.</span><span class="nf">cos</span><span class="p">(</span><span class="n">theta</span><span class="p">),</span> <span class="n">np</span><span class="p">.</span><span class="nf">sin</span><span class="p">(</span><span class="n">theta</span><span class="p">)])</span>
+
+        <span class="c1"># create new node and update its cost and parent
+</span>        <span class="n">new_node</span> <span class="o">=</span> <span class="nc">Node</span><span class="p">(</span><span class="n">new_position</span><span class="p">,</span> <span class="n">from_node</span><span class="p">)</span>
+        <span class="n">new_node</span><span class="p">.</span><span class="n">cost</span> <span class="o">=</span> <span class="n">from_node</span><span class="p">.</span><span class="n">cost</span> <span class="o">+</span> <span class="n">np</span><span class="p">.</span><span class="n">linalg</span><span class="p">.</span><span class="nf">norm</span><span class="p">(</span><span class="n">new_position</span> <span class="o">-</span> <span class="n">from_node</span><span class="p">.</span><span class="n">position</span><span class="p">)</span>
+        <span class="n">new_node</span><span class="p">.</span><span class="n">parent</span> <span class="o">=</span> <span class="n">from_node</span>
+        <span class="k">return</span> <span class="n">new_node</span>
+    
+    <span class="k">def</span> <span class="nf">nearest_node</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>
+        <span class="c1"># find the nearest node in the map to a given node
+</span>        <span class="n">dlist</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="p">.</span><span class="n">linalg</span><span class="p">.</span><span class="nf">norm</span><span class="p">(</span><span class="n">n</span><span class="p">.</span><span class="n">position</span> <span class="o">-</span> <span class="n">node</span><span class="p">.</span><span class="n">position</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">self</span><span class="p">.</span><span class="n">node_list</span><span class="p">]</span>
+        <span class="n">min_index</span> <span class="o">=</span> <span class="n">dlist</span><span class="p">.</span><span class="nf">index</span><span class="p">(</span><span class="nf">min</span><span class="p">(</span><span class="n">dlist</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">self</span><span class="p">.</span><span class="n">node_list</span><span class="p">[</span><span class="n">min_index</span><span class="p">]</span>
+    
+    <span class="k">def</span> <span class="nf">find_nearby_nodes</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="n">new_node</span><span class="p">,</span> <span class="n">radius</span><span class="p">):</span>
+        <span class="c1"># find nearby nodes in the map to new_node within a specified radius
+</span>        <span class="n">nearby_nodes</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">self</span><span class="p">.</span><span class="n">node_list</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">np</span><span class="p">.</span><span class="n">linalg</span><span class="p">.</span><span class="nf">norm</span><span class="p">(</span><span class="n">node</span><span class="p">.</span><span class="n">position</span> <span class="o">-</span> <span class="n">new_node</span><span class="p">.</span><span class="n">position</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">radius</span><span class="p">:</span>
+                <span class="n">nearby_nodes</span><span class="p">.</span><span class="nf">append</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">nearby_nodes</span>
+    
+    <span class="k">def</span> <span class="nf">choose_parent</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="n">new_node</span><span class="p">,</span> <span class="n">nearby_nodes</span><span class="p">):</span>
+        <span class="c1"># choose the best parent for new_node from nearby_nodes based on cost
+</span>        <span class="k">if</span> <span class="ow">not</span> <span class="n">nearby_nodes</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">new_node</span>
+        
+        <span class="c1"># check collision before considering this node as a parent
+</span>        <span class="n">costs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">valid_nodes</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">nearby_nodes</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">self</span><span class="p">.</span><span class="nf">check_collision</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">new_node</span><span class="p">):</span>
+                <span class="n">cost</span> <span class="o">=</span> <span class="n">node</span><span class="p">.</span><span class="n">cost</span> <span class="o">+</span> <span class="n">np</span><span class="p">.</span><span class="n">linalg</span><span class="p">.</span><span class="nf">norm</span><span class="p">(</span><span class="n">node</span><span class="p">.</span><span class="n">position</span> <span class="o">-</span> <span class="n">new_node</span><span class="p">.</span><span class="n">position</span><span class="p">)</span>
+                <span class="n">costs</span><span class="p">.</span><span class="nf">append</span><span class="p">(</span><span class="n">cost</span><span class="p">)</span>
+                <span class="n">valid_nodes</span><span class="p">.</span><span class="nf">append</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">valid_nodes</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">new_node</span>
+
+        <span class="c1"># select parent with minimum cost
+</span>        <span class="n">min_cost_index</span> <span class="o">=</span> <span class="n">costs</span><span class="p">.</span><span class="nf">index</span><span class="p">(</span><span class="nf">min</span><span class="p">(</span><span class="n">costs</span><span class="p">))</span>
+        <span class="n">best_parent</span> <span class="o">=</span> <span class="n">valid_nodes</span><span class="p">[</span><span class="n">min_cost_index</span><span class="p">]</span>
+        <span class="n">new_node</span><span class="p">.</span><span class="n">parent</span> <span class="o">=</span> <span class="n">best_parent</span>
+        <span class="n">new_node</span><span class="p">.</span><span class="n">cost</span> <span class="o">=</span> <span class="n">costs</span><span class="p">[</span><span class="n">min_cost_index</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">new_node</span>
+    
+    <span class="k">def</span> <span class="nf">rewire</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="n">new_node</span><span class="p">,</span> <span class="n">nearby_nodes</span><span class="p">):</span>
+
+        <span class="c1"># check all nearby_nodes to see if we can decrease their cost by rewiring through new_node
+</span>        <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">nearby_nodes</span><span class="p">:</span>
+            <span class="n">cost</span> <span class="o">=</span> <span class="n">new_node</span><span class="p">.</span><span class="n">cost</span> <span class="o">+</span> <span class="n">np</span><span class="p">.</span><span class="n">linalg</span><span class="p">.</span><span class="nf">norm</span><span class="p">(</span><span class="n">node</span><span class="p">.</span><span class="n">position</span> <span class="o">-</span> <span class="n">new_node</span><span class="p">.</span><span class="n">position</span><span class="p">)</span>
+            <span class="nf">if </span><span class="p">(</span><span class="n">cost</span> <span class="o">&lt;</span> <span class="n">node</span><span class="p">.</span><span class="n">cost</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">self</span><span class="p">.</span><span class="nf">check_collision</span><span class="p">(</span><span class="n">new_node</span><span class="p">,</span> <span class="n">node</span><span class="p">)</span> <span class="o">==</span> <span class="bp">False</span><span class="p">):</span>
+                <span class="n">node</span><span class="p">.</span><span class="n">parent</span> <span class="o">=</span> <span class="n">new_node</span>
+                <span class="n">node</span><span class="p">.</span><span class="n">cost</span> <span class="o">=</span> <span class="n">cost</span>
+
+                <span class="c1"># update costs of all descendants
+</span>                <span class="n">self</span><span class="p">.</span><span class="nf">update_descendants_cost</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
+    
+    <span class="k">def</span> <span class="nf">update_descendants_cost</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>
+        <span class="c1"># update costs of all descendants of the given node
+</span>        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">self</span><span class="p">.</span><span class="n">node_list</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">n</span><span class="p">.</span><span class="n">parent</span> <span class="o">==</span> <span class="n">node</span><span class="p">:</span>
+                <span class="n">n</span><span class="p">.</span><span class="n">cost</span> <span class="o">=</span> <span class="n">node</span><span class="p">.</span><span class="n">cost</span> <span class="o">+</span> <span class="n">np</span><span class="p">.</span><span class="n">linalg</span><span class="p">.</span><span class="nf">norm</span><span class="p">(</span><span class="n">n</span><span class="p">.</span><span class="n">position</span> <span class="o">-</span> <span class="n">node</span><span class="p">.</span><span class="n">position</span><span class="p">)</span>
+                <span class="n">self</span><span class="p">.</span><span class="nf">update_descendants_cost</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">check_collision</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="n">node1</span><span class="p">,</span> <span class="n">node2</span><span class="p">):</span>
+        <span class="c1"># check collision between line segment of node1 to node2, and each obstacle
+</span>        <span class="n">p1</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="nf">asarray</span><span class="p">(</span><span class="n">node1</span><span class="p">.</span><span class="n">position</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="n">p2</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="nf">asarray</span><span class="p">(</span><span class="n">node2</span><span class="p">.</span><span class="n">position</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="n">p2</span> <span class="o">-</span> <span class="n">p1</span>
+        <span class="n">seg_len2</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="nf">dot</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+        <span class="n">eps</span> <span class="o">=</span> <span class="mf">1e-8</span>
+
+        <span class="k">for</span> <span class="n">center</span><span class="p">,</span> <span class="n">radius</span> <span class="ow">in</span> <span class="n">self</span><span class="p">.</span><span class="n">obstacles</span><span class="p">:</span>
+            <span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="nf">asarray</span><span class="p">(</span><span class="n">center</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">seg_len2</span> <span class="o">&lt;=</span> <span class="n">eps</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">np</span><span class="p">.</span><span class="n">linalg</span><span class="p">.</span><span class="nf">norm</span><span class="p">(</span><span class="n">p1</span> <span class="o">-</span> <span class="n">c</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">radius</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="bp">True</span>
+                <span class="k">continue</span>
+
+            <span class="n">t</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="nf">dot</span><span class="p">(</span><span class="n">c</span> <span class="o">-</span> <span class="n">p1</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="o">/</span> <span class="n">seg_len2</span>
+            <span class="n">t_clamped</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="nf">clip</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+            <span class="n">closest</span> <span class="o">=</span> <span class="n">p1</span> <span class="o">+</span> <span class="n">t_clamped</span> <span class="o">*</span> <span class="n">v</span>
+            <span class="k">if</span> <span class="n">np</span><span class="p">.</span><span class="n">linalg</span><span class="p">.</span><span class="nf">norm</span><span class="p">(</span><span class="n">closest</span> <span class="o">-</span> <span class="n">c</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">radius</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">True</span>
+
+        <span class="k">return</span> <span class="bp">False</span>
+</code></pre></div></div> <p>Below is an animation function, which executes the RRT* algorithm, and plots the tree, obstacles, start, and goal within matplotlib.</p> <div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">animate</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">rrt_star</span><span class="p">,</span> <span class="n">ax</span><span class="p">,</span> <span class="n">save_counter</span><span class="p">):</span>
+    <span class="c1"># perform multiple iterations per animation frame for faster and smoother growth
+</span>    <span class="n">iters_per_frame</span> <span class="o">=</span> <span class="mi">100</span>
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nf">range</span><span class="p">(</span><span class="n">iters_per_frame</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nf">len</span><span class="p">(</span><span class="n">rrt_star</span><span class="p">.</span><span class="n">node_list</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">rrt_star</span><span class="p">.</span><span class="n">max_iter</span><span class="p">:</span>
+            <span class="k">break</span>
+        <span class="n">rand_node</span> <span class="o">=</span> <span class="n">rrt_star</span><span class="p">.</span><span class="nf">generate_random_node</span><span class="p">()</span>
+        <span class="n">nearest_node</span> <span class="o">=</span> <span class="n">rrt_star</span><span class="p">.</span><span class="nf">nearest_node</span><span class="p">(</span><span class="n">rand_node</span><span class="p">)</span>
+        <span class="n">new_node</span> <span class="o">=</span> <span class="n">rrt_star</span><span class="p">.</span><span class="nf">steer</span><span class="p">(</span><span class="n">nearest_node</span><span class="p">,</span> <span class="n">rand_node</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">rrt_star</span><span class="p">.</span><span class="nf">check_collision</span><span class="p">(</span><span class="n">nearest_node</span><span class="p">,</span> <span class="n">new_node</span><span class="p">):</span>
+            <span class="k">continue</span> 
+        <span class="n">nearby_nodes</span> <span class="o">=</span> <span class="n">rrt_star</span><span class="p">.</span><span class="nf">find_nearby_nodes</span><span class="p">(</span><span class="n">new_node</span><span class="p">,</span> <span class="n">radius</span><span class="o">=</span><span class="mf">2.0</span><span class="p">)</span>
+        <span class="n">new_node</span> <span class="o">=</span> <span class="n">rrt_star</span><span class="p">.</span><span class="nf">choose_parent</span><span class="p">(</span><span class="n">new_node</span><span class="p">,</span> <span class="n">nearby_nodes</span><span class="p">)</span>
+        <span class="n">rrt_star</span><span class="p">.</span><span class="nf">rewire</span><span class="p">(</span><span class="n">new_node</span><span class="p">,</span> <span class="n">nearby_nodes</span><span class="p">)</span>
+        <span class="n">rrt_star</span><span class="p">.</span><span class="n">node_list</span><span class="p">.</span><span class="nf">append</span><span class="p">(</span><span class="n">new_node</span><span class="p">)</span>
+
+        <span class="c1"># check if the goal is reached
+</span>        <span class="k">if</span> <span class="n">np</span><span class="p">.</span><span class="n">linalg</span><span class="p">.</span><span class="nf">norm</span><span class="p">(</span><span class="n">new_node</span><span class="p">.</span><span class="n">position</span> <span class="o">-</span> <span class="n">rrt_star</span><span class="p">.</span><span class="n">goal</span><span class="p">.</span><span class="n">position</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">rrt_star</span><span class="p">.</span><span class="n">step_size</span><span class="p">:</span>
+            <span class="n">rrt_star</span><span class="p">.</span><span class="n">reached_goal</span> <span class="o">=</span> <span class="bp">True</span>
+            <span class="n">rrt_star</span><span class="p">.</span><span class="n">goal</span><span class="p">.</span><span class="n">parent</span> <span class="o">=</span> <span class="n">new_node</span>
+            <span class="n">rrt_star</span><span class="p">.</span><span class="n">goal</span><span class="p">.</span><span class="n">cost</span> <span class="o">=</span> <span class="n">new_node</span><span class="p">.</span><span class="n">cost</span> <span class="o">+</span> <span class="n">np</span><span class="p">.</span><span class="n">linalg</span><span class="p">.</span><span class="nf">norm</span><span class="p">(</span><span class="n">new_node</span><span class="p">.</span><span class="n">position</span> <span class="o">-</span> <span class="n">rrt_star</span><span class="p">.</span><span class="n">goal</span><span class="p">.</span><span class="n">position</span><span class="p">)</span>
+            <span class="n">rrt_star</span><span class="p">.</span><span class="n">node_list</span><span class="p">.</span><span class="nf">append</span><span class="p">(</span><span class="n">rrt_star</span><span class="p">.</span><span class="n">goal</span><span class="p">)</span>
+
+    <span class="c1"># reset plot
+</span>    <span class="n">ax</span><span class="p">.</span><span class="nf">clear</span><span class="p">()</span>
+    <span class="n">ax</span><span class="p">.</span><span class="nf">set_xlim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">rrt_star</span><span class="p">.</span><span class="n">world_size</span><span class="p">)</span>
+    <span class="n">ax</span><span class="p">.</span><span class="nf">set_ylim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">rrt_star</span><span class="p">.</span><span class="n">world_size</span><span class="p">)</span>
+    <span class="n">ax</span><span class="p">.</span><span class="nf">set_title</span><span class="p">(</span><span class="sa">f</span><span class="sh">"</span><span class="s">RRT* Growth - Nodes: </span><span class="si">{</span><span class="nf">len</span><span class="p">(</span><span class="n">rrt_star</span><span class="p">.</span><span class="n">node_list</span><span class="p">)</span><span class="si">}</span><span class="sh">"</span><span class="p">)</span>
+
+    <span class="c1"># draw obstacles
+</span>    <span class="k">for</span> <span class="n">center</span><span class="p">,</span> <span class="n">radius</span> <span class="ow">in</span> <span class="n">rrt_star</span><span class="p">.</span><span class="n">obstacles</span><span class="p">:</span>
+        <span class="n">circle</span> <span class="o">=</span> <span class="n">plt</span><span class="p">.</span><span class="nc">Circle</span><span class="p">(</span><span class="n">center</span><span class="p">,</span> <span class="n">radius</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="sh">'</span><span class="s">gray</span><span class="sh">'</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+        <span class="n">ax</span><span class="p">.</span><span class="nf">add_patch</span><span class="p">(</span><span class="n">circle</span><span class="p">)</span>
+
+    <span class="c1"># draw edges
+</span>    <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">rrt_star</span><span class="p">.</span><span class="n">node_list</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">node</span><span class="p">.</span><span class="n">parent</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="p">[</span><span class="n">node</span><span class="p">.</span><span class="n">position</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">node</span><span class="p">.</span><span class="n">parent</span><span class="p">.</span><span class="n">position</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="p">[</span><span class="n">node</span><span class="p">.</span><span class="n">position</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">node</span><span class="p">.</span><span class="n">parent</span><span class="p">.</span><span class="n">position</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
+            <span class="n">ax</span><span class="p">.</span><span class="nf">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="sh">'</span><span class="s">blue</span><span class="sh">'</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">0.8</span><span class="p">)</span>
+
+    <span class="c1"># draw nodes
+</span>    <span class="n">pts</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="nf">array</span><span class="p">([</span><span class="n">n</span><span class="p">.</span><span class="n">position</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">rrt_star</span><span class="p">.</span><span class="n">node_list</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">pts</span><span class="p">.</span><span class="n">size</span><span class="p">:</span>
+        <span class="n">ax</span><span class="p">.</span><span class="nf">scatter</span><span class="p">(</span><span class="n">pts</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span> <span class="n">pts</span><span class="p">[:,</span><span class="mi">1</span><span class="p">],</span> <span class="n">c</span><span class="o">=</span><span class="sh">'</span><span class="s">black</span><span class="sh">'</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+
+    <span class="c1"># draw start and goal
+</span>    <span class="n">ax</span><span class="p">.</span><span class="nf">scatter</span><span class="p">(</span><span class="n">rrt_star</span><span class="p">.</span><span class="n">start</span><span class="p">.</span><span class="n">position</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">rrt_star</span><span class="p">.</span><span class="n">start</span><span class="p">.</span><span class="n">position</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">c</span><span class="o">=</span><span class="sh">'</span><span class="s">green</span><span class="sh">'</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sh">'</span><span class="s">Start</span><span class="sh">'</span><span class="p">)</span>
+    <span class="n">ax</span><span class="p">.</span><span class="nf">scatter</span><span class="p">(</span><span class="n">rrt_star</span><span class="p">.</span><span class="n">goal</span><span class="p">.</span><span class="n">position</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">rrt_star</span><span class="p">.</span><span class="n">goal</span><span class="p">.</span><span class="n">position</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">c</span><span class="o">=</span><span class="sh">'</span><span class="s">red</span><span class="sh">'</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sh">'</span><span class="s">Goal</span><span class="sh">'</span><span class="p">)</span>
+
+    <span class="c1"># if reached goal, draw path
+</span>    <span class="k">if</span> <span class="n">rrt_star</span><span class="p">.</span><span class="n">reached_goal</span><span class="p">:</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="n">rrt_star</span><span class="p">.</span><span class="n">goal</span>
+        <span class="k">while</span> <span class="n">node</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">path</span><span class="p">.</span><span class="nf">append</span><span class="p">(</span><span class="n">node</span><span class="p">.</span><span class="n">position</span><span class="p">)</span>
+            <span class="n">node</span> <span class="o">=</span> <span class="n">node</span><span class="p">.</span><span class="n">parent</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="nf">array</span><span class="p">(</span><span class="n">path</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">ax</span><span class="p">.</span><span class="nf">plot</span><span class="p">(</span><span class="n">path</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span> <span class="n">path</span><span class="p">[:,</span><span class="mi">1</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="sh">'</span><span class="s">magenta</span><span class="sh">'</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sh">'</span><span class="s">Path</span><span class="sh">'</span><span class="p">)</span>
+        <span class="n">ax</span><span class="p">.</span><span class="nf">legend</span><span class="p">()</span>
+    
+    <span class="n">plt</span><span class="p">.</span><span class="nf">savefig</span><span class="p">(</span><span class="sh">'</span><span class="s">rrt_star_progress</span><span class="sh">'</span> <span class="o">+</span> <span class="nf">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">+</span> <span class="sh">'</span><span class="s">.png</span><span class="sh">'</span><span class="p">)</span>
+</code></pre></div></div> <p>Below is the initialization of the RRT* class, matplotlib plot, and the function call to begin and animate the RRT* algorithm.</p> <div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">start</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="nf">array</span><span class="p">([</span><span class="mi">5</span><span class="p">,</span><span class="mi">5</span><span class="p">])</span>
+<span class="n">goal</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="nf">array</span><span class="p">([</span><span class="mi">17</span><span class="p">,</span><span class="mi">17</span><span class="p">])</span>
+
+<span class="n">obstacles</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">(</span><span class="n">np</span><span class="p">.</span><span class="nf">array</span><span class="p">([</span><span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">]),</span> <span class="mf">2.0</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">np</span><span class="p">.</span><span class="nf">array</span><span class="p">([</span><span class="mi">6</span><span class="p">,</span> <span class="mi">14</span><span class="p">]),</span> <span class="mf">1.5</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">np</span><span class="p">.</span><span class="nf">array</span><span class="p">([</span><span class="mi">14</span><span class="p">,</span> <span class="mi">6</span><span class="p">]),</span> <span class="mf">1.5</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">np</span><span class="p">.</span><span class="nf">array</span><span class="p">([</span><span class="mi">12</span><span class="p">,</span> <span class="mi">16</span><span class="p">]),</span> <span class="mf">2.0</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">np</span><span class="p">.</span><span class="nf">array</span><span class="p">([</span><span class="mi">16</span><span class="p">,</span> <span class="mi">12</span><span class="p">]),</span> <span class="mf">2.0</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">np</span><span class="p">.</span><span class="nf">array</span><span class="p">([</span><span class="mi">8</span><span class="p">,</span> <span class="mi">8</span><span class="p">]),</span> <span class="mf">1.5</span><span class="p">)</span>
+<span class="p">]</span>
+<span class="n">world_size</span> <span class="o">=</span> <span class="mi">20</span>
+
+<span class="n">rrt_star</span> <span class="o">=</span> <span class="nc">RRTStar</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">goal</span><span class="p">,</span> <span class="n">world_size</span><span class="p">,</span> <span class="n">obstacles</span><span class="o">=</span><span class="n">obstacles</span><span class="p">,</span> <span class="n">step_size</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mi">5000</span><span class="p">)</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="p">.</span><span class="nf">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span><span class="mi">6</span><span class="p">))</span>
+<span class="n">ax</span><span class="p">.</span><span class="nf">set_xlim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">rrt_star</span><span class="p">.</span><span class="n">world_size</span><span class="p">)</span>
+<span class="n">ax</span><span class="p">.</span><span class="nf">set_ylim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">rrt_star</span><span class="p">.</span><span class="n">world_size</span><span class="p">)</span>
+<span class="n">ax</span><span class="p">.</span><span class="nf">set_aspect</span><span class="p">(</span><span class="sh">'</span><span class="s">equal</span><span class="sh">'</span><span class="p">)</span>
+
+<span class="n">save_counter</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">animated_rrt</span> <span class="o">=</span> <span class="n">animation</span><span class="p">.</span><span class="nc">FuncAnimation</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">animate</span><span class="p">,</span> <span class="n">fargs</span><span class="o">=</span><span class="p">(</span><span class="n">rrt_star</span><span class="p">,</span> <span class="n">ax</span><span class="p">,</span> <span class="n">save_counter</span><span class="p">),</span> <span class="n">frames</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span> <span class="n">interval</span><span class="o">=</span><span class="mi">30</span><span class="p">)</span>
+<span class="n">plt</span><span class="p">.</span><span class="nf">show</span><span class="p">()</span>
+</code></pre></div></div> <p>This implementation of the RRT* algorithm, with the dynamics of a differential-drive robot is a continuation of the RRT* implementation I have made. This allows for dynamically possible motions for the robot, as opposed to straight line connections between nodes.</p> <div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">%</span><span class="n">matplotlib</span> <span class="n">widget</span>
+<span class="kn">import</span> <span class="n">numpy</span> <span class="k">as</span> <span class="n">np</span>
+<span class="kn">import</span> <span class="n">matplotlib.pyplot</span> <span class="k">as</span> <span class="n">plt</span>
+<span class="kn">import</span> <span class="n">matplotlib.animation</span> <span class="k">as</span> <span class="n">animation</span>
+</code></pre></div></div> <p>Below is the Node class from my previous implementation of RRT*. This was adjusted to store the pose (x, y, theta) of the node, instead of simply the position (x,y). Additionally, the trajectory from the parent to this node is stored.</p> <div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">class</span> <span class="nc">Node</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="n">pose</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="n">self</span><span class="p">.</span><span class="n">pose</span> <span class="o">=</span> <span class="n">pose</span>
+        <span class="n">self</span><span class="p">.</span><span class="n">parent</span> <span class="o">=</span> <span class="n">parent</span>
+        <span class="n">self</span><span class="p">.</span><span class="n">cost</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="n">self</span><span class="p">.</span><span class="n">trajectory</span> <span class="o">=</span> <span class="p">[]</span>
+</code></pre></div></div> <p>Below is the RRTStarDynamics class. This class contains many similar functions as the previous RRTStar class I implemented. For this specific implementation, main difference is the changes to the <em>steer()</em> function, the <em>rewire()</em> function, the <em>choose_parent()</em> function, and the <em>check_collision()</em> function. The <em>simulate_trajectory()</em> function now utilizes the differential-drive robot dynamics to simulate a discretized trajectory.</p> <p>The <em>steer()</em> function now samples <em>num_samples</em> trajectories with <em>simulate_trajectory()</em>. This is done with a random control input <em>v, w</em> based upon the robot’s control limits. The trajectory that ends closest to the sampled node is chosen as the location of the new node, alongside the sampled trajectory.<br> The <em>simulate_trajectory()</em> function creates a trajectory with a given control input.<br> The <em>rewire()</em> function now simulates <em>num_samples</em> trajectories for each nearby node, and if a trajectory ends within a <em>threshold</em> of the new node, if the cost is lower that node will be chosen as the new parent.<br> The <em>choose_parent()</em> function now simulates a trajectory similar to <em>steer()</em> to determine a new nodes parent.<br> The <em>check_collision()</em> function now checks if each pose in the trajectory is within an object, instead of just the mid-point of the trajectory.</p> <div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">class</span> <span class="nc">RRTStarDynamics</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">goal</span><span class="p">,</span> <span class="n">world_size</span><span class="p">,</span> <span class="n">obstacles</span><span class="o">=</span><span class="p">[],</span> <span class="n">threshold</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span> <span class="n">step_size</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mi">5000</span><span class="p">):</span>
+        <span class="n">self</span><span class="p">.</span><span class="n">start</span> <span class="o">=</span> <span class="nc">Node</span><span class="p">(</span><span class="n">start</span><span class="p">)</span>
+        <span class="n">self</span><span class="p">.</span><span class="n">goal</span> <span class="o">=</span> <span class="nc">Node</span><span class="p">(</span><span class="n">goal</span><span class="p">)</span>
+        <span class="n">self</span><span class="p">.</span><span class="n">world_size</span> <span class="o">=</span> <span class="n">world_size</span>
+        <span class="n">self</span><span class="p">.</span><span class="n">obstacles</span> <span class="o">=</span> <span class="n">obstacles</span>
+        <span class="n">self</span><span class="p">.</span><span class="n">threshold</span> <span class="o">=</span> <span class="n">threshold</span>
+        <span class="n">self</span><span class="p">.</span><span class="n">step_size</span> <span class="o">=</span> <span class="n">step_size</span>
+        <span class="n">self</span><span class="p">.</span><span class="n">max_iter</span> <span class="o">=</span> <span class="n">max_iter</span>
+        <span class="n">self</span><span class="p">.</span><span class="n">node_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">self</span><span class="p">.</span><span class="n">start</span><span class="p">]</span>
+        <span class="n">self</span><span class="p">.</span><span class="n">reached_goal</span> <span class="o">=</span> <span class="bp">False</span>
+
+    <span class="k">def</span> <span class="nf">generate_random_node</span><span class="p">(</span><span class="n">self</span><span class="p">):</span>
+        <span class="c1"># generate a random node within the map with random orientation
+</span>        <span class="n">position</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="n">random</span><span class="p">.</span><span class="nf">uniform</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">self</span><span class="p">.</span><span class="n">world_size</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">theta</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="n">random</span><span class="p">.</span><span class="nf">uniform</span><span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="p">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">np</span><span class="p">.</span><span class="n">pi</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nc">Node</span><span class="p">(</span><span class="n">np</span><span class="p">.</span><span class="nf">array</span><span class="p">([</span><span class="n">position</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">position</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">theta</span><span class="p">]))</span>
+
+    <span class="k">def</span> <span class="nf">steer</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="n">from_node</span><span class="p">,</span> <span class="n">to_node</span><span class="p">,</span> <span class="n">num_samples</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">delta_t</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">max_time</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">v_range</span><span class="o">=</span><span class="n">np</span><span class="p">.</span><span class="nf">array</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">]),</span> <span class="n">w_range</span><span class="o">=</span><span class="n">np</span><span class="p">.</span><span class="nf">array</span><span class="p">([</span><span class="o">-</span><span class="n">np</span><span class="p">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">4</span><span class="p">,</span> <span class="n">np</span><span class="p">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">4</span><span class="p">])):</span>
+        <span class="c1"># calculate the best trajectory from from_node to to_node using sampled control inputs
+</span>        <span class="n">best_trajectory</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="n">min_cost</span> <span class="o">=</span> <span class="nf">float</span><span class="p">(</span><span class="sh">'</span><span class="s">inf</span><span class="sh">'</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nf">range</span><span class="p">(</span><span class="n">num_samples</span><span class="p">):</span>
+            <span class="c1"># sample control inputs
+</span>            <span class="n">v</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="n">random</span><span class="p">.</span><span class="nf">uniform</span><span class="p">(</span><span class="n">v_range</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">v_range</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">w</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="n">random</span><span class="p">.</span><span class="nf">uniform</span><span class="p">(</span><span class="n">w_range</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">w_range</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+            <span class="c1"># simulate the motion for current control inputs
+</span>            <span class="n">trajectory</span> <span class="o">=</span> <span class="n">self</span><span class="p">.</span><span class="nf">simulate_trajectory</span><span class="p">(</span><span class="n">from_node</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">delta_t</span><span class="p">,</span> <span class="n">max_time</span><span class="p">)</span>
+
+            <span class="c1"># if trajectory is not valid, skip this sample
+</span>            <span class="k">if</span> <span class="ow">not</span> <span class="n">trajectory</span> <span class="ow">or</span> <span class="nf">len</span><span class="p">(</span><span class="n">trajectory</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="c1"># compute the cost of this trajectory
+</span>            <span class="n">dist</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="n">linalg</span><span class="p">.</span><span class="nf">norm</span><span class="p">(</span><span class="n">trajectory</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][:</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">to_node</span><span class="p">.</span><span class="n">pose</span><span class="p">[:</span><span class="mi">2</span><span class="p">])</span>
+
+            <span class="c1"># check if this is the best trajectory, if so save it
+</span>            <span class="k">if</span> <span class="n">dist</span> <span class="o">&lt;</span> <span class="n">min_cost</span><span class="p">:</span>
+                <span class="n">min_cost</span> <span class="o">=</span> <span class="n">dist</span>
+                <span class="n">best_trajectory</span> <span class="o">=</span> <span class="n">trajectory</span>
+
+        <span class="k">return</span> <span class="n">best_trajectory</span>
+
+    <span class="k">def</span> <span class="nf">simulate_trajectory</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="n">from_node</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">delta_t</span><span class="p">,</span> <span class="n">max_time</span><span class="p">):</span>
+        <span class="c1"># simulate the trajectory of the robot given the control inputs, using the differential drive model
+</span>        <span class="n">trajectory</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">current_pose</span> <span class="o">=</span> <span class="n">from_node</span><span class="p">.</span><span class="n">pose</span>
+
+        <span class="c1"># for each timestep, update the pose based on the control inputs and vehicle dynamics
+</span>        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">np</span><span class="p">.</span><span class="nf">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">max_time</span><span class="p">,</span> <span class="n">delta_t</span><span class="p">):</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">current_pose</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">current_pose</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">theta</span> <span class="o">=</span> <span class="n">current_pose</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+
+            <span class="n">x</span> <span class="o">+=</span> <span class="n">v</span> <span class="o">*</span> <span class="n">np</span><span class="p">.</span><span class="nf">cos</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span> <span class="o">*</span> <span class="n">delta_t</span>
+            <span class="n">y</span> <span class="o">+=</span> <span class="n">v</span> <span class="o">*</span> <span class="n">np</span><span class="p">.</span><span class="nf">sin</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span> <span class="o">*</span> <span class="n">delta_t</span>
+            <span class="n">theta</span> <span class="o">+=</span> <span class="n">w</span> <span class="o">*</span> <span class="n">delta_t</span>
+
+            <span class="nf">if</span><span class="p">(</span><span class="n">x</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">x</span> <span class="o">&gt;</span> <span class="n">self</span><span class="p">.</span><span class="n">world_size</span> <span class="ow">or</span> <span class="n">y</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">y</span> <span class="o">&gt;</span> <span class="n">self</span><span class="p">.</span><span class="n">world_size</span><span class="p">):</span>
+                <span class="k">break</span>  <span class="c1"># stop if trajectory goes out of bounds
+</span>
+            <span class="n">current_pose</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="nf">array</span><span class="p">([</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">theta</span><span class="p">])</span>
+            <span class="n">trajectory</span><span class="p">.</span><span class="nf">append</span><span class="p">(</span><span class="n">current_pose</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">trajectory</span>
+
+    <span class="k">def</span> <span class="nf">nearest_node</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>
+        <span class="c1"># find the nearest node in the map to a given node
+</span>        <span class="n">dlist</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="p">.</span><span class="n">linalg</span><span class="p">.</span><span class="nf">norm</span><span class="p">(</span><span class="n">n</span><span class="p">.</span><span class="n">pose</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">node</span><span class="p">.</span><span class="n">pose</span><span class="p">[:</span><span class="mi">2</span><span class="p">])</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">self</span><span class="p">.</span><span class="n">node_list</span><span class="p">]</span>
+        <span class="n">min_index</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="nf">argmin</span><span class="p">(</span><span class="n">dlist</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">self</span><span class="p">.</span><span class="n">node_list</span><span class="p">[</span><span class="n">min_index</span><span class="p">]</span>
+    
+    <span class="k">def</span> <span class="nf">find_nearby_nodes</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="n">new_node</span><span class="p">,</span> <span class="n">radius</span><span class="p">):</span>
+        <span class="c1"># find nearby nodes in the map to new_node within a specified radius
+</span>        <span class="n">nearby_nodes</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">self</span><span class="p">.</span><span class="n">node_list</span><span class="p">:</span>
+            <span class="n">dist</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="n">linalg</span><span class="p">.</span><span class="nf">norm</span><span class="p">(</span><span class="n">node</span><span class="p">.</span><span class="n">pose</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">new_node</span><span class="p">.</span><span class="n">pose</span><span class="p">[:</span><span class="mi">2</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">dist</span> <span class="o">&lt;=</span> <span class="n">radius</span><span class="p">:</span>
+                <span class="n">nearby_nodes</span><span class="p">.</span><span class="nf">append</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">nearby_nodes</span>
+    
+    <span class="k">def</span> <span class="nf">choose_parent</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="n">new_node</span><span class="p">,</span> <span class="n">nearby_nodes</span><span class="p">):</span>
+        <span class="c1"># choose the best parent for new_node from nearby_nodes based on cost
+</span>        <span class="k">if</span> <span class="ow">not</span> <span class="n">nearby_nodes</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">new_node</span>
+        
+        <span class="c1"># check collision before considering this node as a parent
+</span>        <span class="n">min_cost</span> <span class="o">=</span> <span class="nf">float</span><span class="p">(</span><span class="sh">'</span><span class="s">inf</span><span class="sh">'</span><span class="p">)</span>
+        <span class="n">best_parent</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="n">best_traj</span> <span class="o">=</span> <span class="bp">None</span>
+        
+        <span class="c1"># for each nearby node, simulate a trajectory to new_node and compute the cost
+</span>        <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">nearby_nodes</span><span class="p">:</span>
+            <span class="n">traj</span> <span class="o">=</span> <span class="n">self</span><span class="p">.</span><span class="nf">steer</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">new_node</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">traj</span> <span class="ow">and</span> <span class="nf">len</span><span class="p">(</span><span class="n">traj</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">self</span><span class="p">.</span><span class="nf">check_collision</span><span class="p">(</span><span class="n">traj</span><span class="p">):</span>
+
+                <span class="n">endpoint</span> <span class="o">=</span> <span class="n">traj</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][:</span><span class="mi">2</span><span class="p">]</span>
+                <span class="n">target</span> <span class="o">=</span> <span class="n">new_node</span><span class="p">.</span><span class="n">pose</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+
+                <span class="c1"># ensure the trajectory ends within self.threshold of new_node
+</span>                <span class="k">if</span> <span class="n">np</span><span class="p">.</span><span class="n">linalg</span><span class="p">.</span><span class="nf">norm</span><span class="p">(</span><span class="n">endpoint</span> <span class="o">-</span> <span class="n">target</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">self</span><span class="p">.</span><span class="n">threshold</span><span class="p">:</span>
+                    <span class="k">continue</span>
+
+                <span class="c1"># compute the cost of this trajectory, and if it's the best, save it
+</span>                <span class="n">cost</span> <span class="o">=</span> <span class="n">node</span><span class="p">.</span><span class="n">cost</span> <span class="o">+</span> <span class="n">self</span><span class="p">.</span><span class="nf">trajectory_cost</span><span class="p">(</span><span class="n">traj</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">cost</span> <span class="o">&lt;</span> <span class="n">min_cost</span><span class="p">:</span>
+                    <span class="n">min_cost</span> <span class="o">=</span> <span class="n">cost</span>
+                    <span class="n">best_parent</span> <span class="o">=</span> <span class="n">node</span>
+                    <span class="n">best_traj</span> <span class="o">=</span> <span class="n">traj</span>
+
+        <span class="c1"># update the nodes parent if a better parent was found
+</span>        <span class="k">if</span> <span class="n">best_parent</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">new_node</span><span class="p">.</span><span class="n">parent</span> <span class="o">=</span> <span class="n">best_parent</span>
+            <span class="n">new_node</span><span class="p">.</span><span class="n">cost</span> <span class="o">=</span> <span class="n">min_cost</span>
+            <span class="n">new_node</span><span class="p">.</span><span class="n">trajectory</span> <span class="o">=</span> <span class="n">best_traj</span>
+
+        <span class="k">return</span>
+
+    <span class="k">def</span> <span class="nf">rewire</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="n">new_node</span><span class="p">,</span> <span class="n">nearby_nodes</span><span class="p">):</span>
+
+        <span class="c1"># check all nearby_nodes to see if we can decrease their cost by rewiring through new_node
+</span>        <span class="k">for</span> <span class="n">nearby_node</span> <span class="ow">in</span> <span class="n">nearby_nodes</span><span class="p">:</span>
+
+            <span class="c1"># skip if nearby_node is the parent of new_node or is the start node
+</span>            <span class="k">if</span> <span class="n">nearby_node</span> <span class="o">==</span> <span class="n">new_node</span><span class="p">.</span><span class="n">parent</span> <span class="ow">or</span> <span class="n">nearby_node</span> <span class="o">==</span> <span class="n">self</span><span class="p">.</span><span class="n">start</span><span class="p">:</span>
+                <span class="k">continue</span>
+            
+            <span class="c1"># steer from new_node to nearby_node, check if new_node is a better parent for any nearby node
+</span>            <span class="n">traj</span> <span class="o">=</span> <span class="n">self</span><span class="p">.</span><span class="nf">steer</span><span class="p">(</span><span class="n">new_node</span><span class="p">,</span> <span class="n">nearby_node</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">traj</span> <span class="ow">and</span> <span class="nf">len</span><span class="p">(</span><span class="n">traj</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">self</span><span class="p">.</span><span class="nf">check_collision</span><span class="p">(</span><span class="n">traj</span><span class="p">):</span>
+
+                <span class="c1"># ensure that trajectory ends within self.threshold of nearby_node
+</span>                <span class="n">endpoint</span> <span class="o">=</span> <span class="n">traj</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][:</span><span class="mi">2</span><span class="p">]</span>
+                <span class="n">target</span> <span class="o">=</span> <span class="n">nearby_node</span><span class="p">.</span><span class="n">pose</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">np</span><span class="p">.</span><span class="n">linalg</span><span class="p">.</span><span class="nf">norm</span><span class="p">(</span><span class="n">endpoint</span> <span class="o">-</span> <span class="n">target</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">self</span><span class="p">.</span><span class="n">threshold</span><span class="p">:</span>
+                    <span class="k">continue</span>
+                
+                <span class="c1"># compute the cost of this trajectory, and if it's better, rewire nearby_node
+</span>                <span class="n">cost</span> <span class="o">=</span> <span class="n">nearby_node</span><span class="p">.</span><span class="n">cost</span> <span class="o">+</span> <span class="n">self</span><span class="p">.</span><span class="nf">trajectory_cost</span><span class="p">(</span><span class="n">traj</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">cost</span> <span class="o">&lt;</span> <span class="n">nearby_node</span><span class="p">.</span><span class="n">cost</span><span class="p">:</span>
+                    <span class="n">nearby_node</span><span class="p">.</span><span class="n">parent</span> <span class="o">=</span> <span class="n">new_node</span>
+                    <span class="n">nearby_node</span><span class="p">.</span><span class="n">cost</span> <span class="o">=</span> <span class="n">cost</span>
+                    <span class="n">nearby_node</span><span class="p">.</span><span class="n">trajectory</span> <span class="o">=</span> <span class="n">traj</span>
+                    <span class="n">self</span><span class="p">.</span><span class="nf">update_descendants_cost</span><span class="p">(</span><span class="n">nearby_node</span><span class="p">)</span>
+
+        <span class="k">return</span>
+    
+    <span class="k">def</span> <span class="nf">update_descendants_cost</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="n">curr_node</span><span class="p">):</span>
+        <span class="c1"># update costs of all descendants of the given node
+</span>        <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">self</span><span class="p">.</span><span class="n">node_list</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">node</span><span class="p">.</span><span class="n">parent</span> <span class="o">==</span> <span class="n">curr_node</span><span class="p">:</span>
+                
+                <span class="n">traj</span> <span class="o">=</span> <span class="n">node</span><span class="p">.</span><span class="n">trajectory</span>
+                <span class="k">if</span> <span class="n">traj</span> <span class="ow">and</span> <span class="nf">len</span><span class="p">(</span><span class="n">traj</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">node</span><span class="p">.</span><span class="n">cost</span> <span class="o">=</span> <span class="n">curr_node</span><span class="p">.</span><span class="n">cost</span> <span class="o">+</span> <span class="n">self</span><span class="p">.</span><span class="nf">trajectory_cost</span><span class="p">(</span><span class="n">traj</span><span class="p">)</span>
+                    <span class="n">self</span><span class="p">.</span><span class="nf">update_descendants_cost</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
+
+        <span class="k">return</span>
+
+    <span class="k">def</span> <span class="nf">trajectory_cost</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="n">trajectory</span><span class="p">):</span>
+        <span class="c1"># compute the cost of a trajectory by summing the Euclidean distances between consecutive poses
+</span>        <span class="n">cost</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">np</span><span class="p">.</span><span class="nf">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nf">len</span><span class="p">(</span><span class="n">trajectory</span><span class="p">)):</span>
+            <span class="n">cost</span> <span class="o">+=</span> <span class="n">np</span><span class="p">.</span><span class="n">linalg</span><span class="p">.</span><span class="nf">norm</span><span class="p">(</span><span class="n">trajectory</span><span class="p">[</span><span class="n">i</span><span class="p">][:</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">trajectory</span><span class="p">[</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">][:</span><span class="mi">2</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">cost</span>
+    
+    <span class="k">def</span> <span class="nf">check_collision</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="n">trajectory</span><span class="p">):</span>
+        <span class="c1"># check if any part of the trajectory collides with any obstacles
+</span>        <span class="k">for</span> <span class="n">obs</span> <span class="ow">in</span> <span class="n">self</span><span class="p">.</span><span class="n">obstacles</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">pose</span> <span class="ow">in</span> <span class="n">trajectory</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">np</span><span class="p">.</span><span class="n">linalg</span><span class="p">.</span><span class="nf">norm</span><span class="p">(</span><span class="n">pose</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">obs</span><span class="p">[</span><span class="mi">0</span><span class="p">][:</span><span class="mi">2</span><span class="p">])</span> <span class="o">&lt;=</span> <span class="n">obs</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+                    <span class="k">return</span> <span class="bp">True</span>
+        <span class="k">return</span> <span class="bp">False</span>
+
+    <span class="k">def</span> <span class="nf">get_path</span><span class="p">(</span><span class="n">self</span><span class="p">):</span>
+        <span class="c1"># retrieve the path from start to goal by backtracking from goal to start
+</span>        <span class="k">if</span> <span class="ow">not</span> <span class="n">self</span><span class="p">.</span><span class="n">reached_goal</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">None</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="n">self</span><span class="p">.</span><span class="n">goal</span>
+        <span class="k">while</span> <span class="n">node</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">node</span><span class="p">.</span><span class="n">trajectory</span> <span class="ow">and</span> <span class="nf">len</span><span class="p">(</span><span class="n">node</span><span class="p">.</span><span class="n">trajectory</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">path</span><span class="p">.</span><span class="nf">extend</span><span class="p">(</span><span class="nf">reversed</span><span class="p">(</span><span class="n">node</span><span class="p">.</span><span class="n">trajectory</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">path</span><span class="p">.</span><span class="nf">append</span><span class="p">(</span><span class="n">node</span><span class="p">.</span><span class="n">pose</span><span class="p">)</span>
+            <span class="n">node</span> <span class="o">=</span> <span class="n">node</span><span class="p">.</span><span class="n">parent</span>
+        
+        <span class="n">path</span><span class="p">.</span><span class="nf">reverse</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">path</span>
+</code></pre></div></div> <p>The <em>animate()</em> function performs the same task as in the default RRT* implementation, calling each function to implement the RRT* with robot dynamics, as well as plotting the growth of the algorithm.</p> <div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">animate</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">rrt_star</span><span class="p">,</span> <span class="n">ax</span><span class="p">,</span> <span class="n">save_counter</span><span class="p">):</span>
+    <span class="c1"># perform multiple iterations per animation frame for faster and smoother growth
+</span>    <span class="n">iters_per_frame</span> <span class="o">=</span> <span class="mi">10</span>
+
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nf">range</span><span class="p">(</span><span class="n">iters_per_frame</span><span class="p">):</span>
+        <span class="c1"># check if max iterations reached
+</span>        <span class="k">if</span> <span class="nf">len</span><span class="p">(</span><span class="n">rrt_star</span><span class="p">.</span><span class="n">node_list</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">rrt_star</span><span class="p">.</span><span class="n">max_iter</span><span class="p">:</span>
+            <span class="k">break</span>
+
+        <span class="c1"># biased sampling towards goal
+</span>        <span class="nf">if</span><span class="p">(</span><span class="n">np</span><span class="p">.</span><span class="n">random</span><span class="p">.</span><span class="nf">random</span><span class="p">()</span> <span class="o">&lt;</span> <span class="mf">0.05</span><span class="p">):</span>
+            <span class="n">rand_node</span> <span class="o">=</span> <span class="nc">Node</span><span class="p">(</span><span class="n">rrt_star</span><span class="p">.</span><span class="n">goal</span><span class="p">.</span><span class="n">pose</span><span class="p">.</span><span class="nf">copy</span><span class="p">())</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">rand_node</span> <span class="o">=</span> <span class="n">rrt_star</span><span class="p">.</span><span class="nf">generate_random_node</span><span class="p">()</span>
+
+        <span class="c1"># find nearest node and steer towards random node
+</span>        <span class="n">nearest_node</span> <span class="o">=</span> <span class="n">rrt_star</span><span class="p">.</span><span class="nf">nearest_node</span><span class="p">(</span><span class="n">rand_node</span><span class="p">)</span>
+        <span class="n">new_trajectory</span> <span class="o">=</span> <span class="n">rrt_star</span><span class="p">.</span><span class="nf">steer</span><span class="p">(</span><span class="n">nearest_node</span><span class="p">,</span> <span class="n">rand_node</span><span class="p">)</span>
+
+        <span class="c1"># if trajectory is invalid or collides, skip
+</span>        <span class="k">if</span> <span class="ow">not</span> <span class="n">new_trajectory</span> <span class="ow">or</span> <span class="nf">len</span><span class="p">(</span><span class="n">new_trajectory</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">rrt_star</span><span class="p">.</span><span class="nf">check_collision</span><span class="p">(</span><span class="n">new_trajectory</span><span class="p">):</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># create a new node at the end of the steered trajectory
+</span>        <span class="n">new_pose</span> <span class="o">=</span> <span class="n">new_trajectory</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">new_node</span> <span class="o">=</span> <span class="nc">Node</span><span class="p">(</span><span class="n">new_pose</span><span class="p">)</span>
+        <span class="n">new_node</span><span class="p">.</span><span class="n">trajectory</span> <span class="o">=</span> <span class="n">new_trajectory</span>
+        <span class="n">new_node</span><span class="p">.</span><span class="n">parent</span> <span class="o">=</span> <span class="n">nearest_node</span>
+        <span class="n">new_node</span><span class="p">.</span><span class="n">cost</span> <span class="o">=</span> <span class="n">nearest_node</span><span class="p">.</span><span class="n">cost</span> <span class="o">+</span> <span class="n">rrt_star</span><span class="p">.</span><span class="nf">trajectory_cost</span><span class="p">(</span><span class="n">new_trajectory</span><span class="p">)</span>
+
+        <span class="c1"># choose the parent for the new node and rewire the tree
+</span>        <span class="n">nearby_nodes</span> <span class="o">=</span> <span class="n">rrt_star</span><span class="p">.</span><span class="nf">find_nearby_nodes</span><span class="p">(</span><span class="n">new_node</span><span class="p">,</span> <span class="n">radius</span><span class="o">=</span><span class="mf">2.0</span><span class="p">)</span>
+        <span class="n">rrt_star</span><span class="p">.</span><span class="nf">choose_parent</span><span class="p">(</span><span class="n">new_node</span><span class="p">,</span> <span class="n">nearby_nodes</span><span class="p">)</span>
+        <span class="n">rrt_star</span><span class="p">.</span><span class="n">node_list</span><span class="p">.</span><span class="nf">append</span><span class="p">(</span><span class="n">new_node</span><span class="p">)</span>
+        <span class="n">rrt_star</span><span class="p">.</span><span class="nf">rewire</span><span class="p">(</span><span class="n">new_node</span><span class="p">,</span> <span class="n">nearby_nodes</span><span class="p">)</span>
+
+        <span class="c1"># check if the goal is reached within step_size
+</span>        <span class="k">if</span> <span class="n">np</span><span class="p">.</span><span class="n">linalg</span><span class="p">.</span><span class="nf">norm</span><span class="p">(</span><span class="n">new_node</span><span class="p">.</span><span class="n">pose</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">rrt_star</span><span class="p">.</span><span class="n">goal</span><span class="p">.</span><span class="n">pose</span><span class="p">[:</span><span class="mi">2</span><span class="p">])</span> <span class="o">&lt;</span> <span class="n">rrt_star</span><span class="p">.</span><span class="n">step_size</span><span class="p">:</span>
+            <span class="n">new_cost</span> <span class="o">=</span> <span class="n">new_node</span><span class="p">.</span><span class="n">cost</span> <span class="o">+</span> <span class="n">np</span><span class="p">.</span><span class="n">linalg</span><span class="p">.</span><span class="nf">norm</span><span class="p">(</span><span class="n">new_node</span><span class="p">.</span><span class="n">pose</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">rrt_star</span><span class="p">.</span><span class="n">goal</span><span class="p">.</span><span class="n">pose</span><span class="p">[:</span><span class="mi">2</span><span class="p">])</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">rrt_star</span><span class="p">.</span><span class="n">reached_goal</span> <span class="ow">or</span> <span class="n">new_cost</span> <span class="o">&lt;</span> <span class="n">rrt_star</span><span class="p">.</span><span class="n">goal</span><span class="p">.</span><span class="n">cost</span><span class="p">:</span>
+                <span class="n">rrt_star</span><span class="p">.</span><span class="n">reached_goal</span> <span class="o">=</span> <span class="bp">True</span>
+                <span class="n">rrt_star</span><span class="p">.</span><span class="n">goal</span><span class="p">.</span><span class="n">parent</span> <span class="o">=</span> <span class="n">new_node</span>
+                <span class="n">rrt_star</span><span class="p">.</span><span class="n">goal</span><span class="p">.</span><span class="n">cost</span> <span class="o">=</span> <span class="n">new_cost</span>
+
+    <span class="c1"># reset plot
+</span>    <span class="n">ax</span><span class="p">.</span><span class="nf">clear</span><span class="p">()</span>
+    <span class="n">ax</span><span class="p">.</span><span class="nf">set_xlim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">rrt_star</span><span class="p">.</span><span class="n">world_size</span><span class="p">)</span>
+    <span class="n">ax</span><span class="p">.</span><span class="nf">set_ylim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">rrt_star</span><span class="p">.</span><span class="n">world_size</span><span class="p">)</span>
+    <span class="n">ax</span><span class="p">.</span><span class="nf">set_title</span><span class="p">(</span><span class="sa">f</span><span class="sh">"</span><span class="s">RRT* With Dynamics</span><span class="sh">"</span><span class="p">)</span>
+
+    <span class="c1"># draw obstacles
+</span>    <span class="k">for</span> <span class="n">obs</span> <span class="ow">in</span> <span class="n">rrt_star</span><span class="p">.</span><span class="n">obstacles</span><span class="p">:</span>
+        <span class="n">center</span><span class="p">,</span> <span class="n">radius</span> <span class="o">=</span> <span class="n">obs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">obs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">circle</span> <span class="o">=</span> <span class="n">plt</span><span class="p">.</span><span class="nc">Circle</span><span class="p">(</span><span class="n">center</span><span class="p">,</span> <span class="n">radius</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="sh">'</span><span class="s">gray</span><span class="sh">'</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+        <span class="n">ax</span><span class="p">.</span><span class="nf">add_patch</span><span class="p">(</span><span class="n">circle</span><span class="p">)</span>
+
+    <span class="c1"># draw trajectories between nodes
+</span>    <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">rrt_star</span><span class="p">.</span><span class="n">node_list</span><span class="p">:</span>
+
+        <span class="k">if</span> <span class="n">node</span><span class="p">.</span><span class="n">parent</span> <span class="ow">and</span> <span class="nf">len</span><span class="p">(</span><span class="n">node</span><span class="p">.</span><span class="n">trajectory</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">traj</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="nf">array</span><span class="p">(</span><span class="n">node</span><span class="p">.</span><span class="n">trajectory</span><span class="p">)</span>
+            <span class="n">ax</span><span class="p">.</span><span class="nf">plot</span><span class="p">(</span><span class="n">traj</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">traj</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="sh">'</span><span class="s">blue</span><span class="sh">'</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.7</span><span class="p">)</span>
+
+    <span class="c1"># draw nodes
+</span>    <span class="n">pts</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="nf">array</span><span class="p">([</span><span class="n">n</span><span class="p">.</span><span class="n">pose</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">rrt_star</span><span class="p">.</span><span class="n">node_list</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">pts</span><span class="p">.</span><span class="n">size</span><span class="p">:</span>
+        <span class="n">ax</span><span class="p">.</span><span class="nf">scatter</span><span class="p">(</span><span class="n">pts</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span> <span class="n">pts</span><span class="p">[:,</span><span class="mi">1</span><span class="p">],</span> <span class="n">c</span><span class="o">=</span><span class="sh">'</span><span class="s">black</span><span class="sh">'</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">zorder</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    
+    <span class="c1"># draw start and goal
+</span>    <span class="n">ax</span><span class="p">.</span><span class="nf">scatter</span><span class="p">(</span><span class="n">rrt_star</span><span class="p">.</span><span class="n">start</span><span class="p">.</span><span class="n">pose</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">rrt_star</span><span class="p">.</span><span class="n">start</span><span class="p">.</span><span class="n">pose</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">c</span><span class="o">=</span><span class="sh">'</span><span class="s">green</span><span class="sh">'</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sh">'</span><span class="s">Start</span><span class="sh">'</span><span class="p">,</span> <span class="n">zorder</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">ax</span><span class="p">.</span><span class="nf">scatter</span><span class="p">(</span><span class="n">rrt_star</span><span class="p">.</span><span class="n">goal</span><span class="p">.</span><span class="n">pose</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">rrt_star</span><span class="p">.</span><span class="n">goal</span><span class="p">.</span><span class="n">pose</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">c</span><span class="o">=</span><span class="sh">'</span><span class="s">red</span><span class="sh">'</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sh">'</span><span class="s">Goal</span><span class="sh">'</span><span class="p">,</span> <span class="n">zorder</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+
+    <span class="c1"># if reached goal, draw path from start to goal
+</span>    <span class="k">if</span> <span class="n">rrt_star</span><span class="p">.</span><span class="n">reached_goal</span><span class="p">:</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">rrt_star</span><span class="p">.</span><span class="nf">get_path</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="nf">len</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">path</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="nf">array</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+            <span class="n">ax</span><span class="p">.</span><span class="nf">plot</span><span class="p">(</span><span class="n">path</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span> <span class="n">path</span><span class="p">[:,</span><span class="mi">1</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="sh">'</span><span class="s">magenta</span><span class="sh">'</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sh">'</span><span class="s">Path</span><span class="sh">'</span><span class="p">)</span>
+
+    <span class="n">ax</span><span class="p">.</span><span class="nf">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="sh">'</span><span class="s">lower right</span><span class="sh">'</span><span class="p">)</span>
+</code></pre></div></div> <div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1"># define start and goal poses [x, y, theta]
+</span><span class="n">start</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="nf">array</span><span class="p">([</span><span class="mf">2.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">])</span>
+<span class="n">goal</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="nf">array</span><span class="p">([</span><span class="mf">18.0</span><span class="p">,</span> <span class="mf">18.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">])</span>
+
+<span class="c1"># define obstacles [[x, y], radius]
+</span><span class="n">obstacles</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">(</span><span class="n">np</span><span class="p">.</span><span class="nf">array</span><span class="p">([</span><span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">]),</span> <span class="mf">2.0</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">np</span><span class="p">.</span><span class="nf">array</span><span class="p">([</span><span class="mi">6</span><span class="p">,</span> <span class="mi">14</span><span class="p">]),</span> <span class="mf">1.5</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">np</span><span class="p">.</span><span class="nf">array</span><span class="p">([</span><span class="mi">14</span><span class="p">,</span> <span class="mi">6</span><span class="p">]),</span> <span class="mf">1.5</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">np</span><span class="p">.</span><span class="nf">array</span><span class="p">([</span><span class="mi">12</span><span class="p">,</span> <span class="mi">16</span><span class="p">]),</span> <span class="mf">2.0</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">np</span><span class="p">.</span><span class="nf">array</span><span class="p">([</span><span class="mi">16</span><span class="p">,</span> <span class="mi">12</span><span class="p">]),</span> <span class="mf">2.0</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">np</span><span class="p">.</span><span class="nf">array</span><span class="p">([</span><span class="mi">8</span><span class="p">,</span> <span class="mi">8</span><span class="p">]),</span> <span class="mf">1.5</span><span class="p">)</span>
+<span class="p">]</span>
+
+<span class="c1"># Create and run RRT*
+</span><span class="n">rrt_star</span> <span class="o">=</span> <span class="nc">RRTStarDynamics</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">goal</span><span class="p">,</span> <span class="n">world_size</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> 
+                                <span class="n">obstacles</span><span class="o">=</span><span class="n">obstacles</span><span class="p">,</span> 
+                                <span class="n">step_size</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> 
+                                <span class="n">max_iter</span><span class="o">=</span><span class="mi">5000</span><span class="p">)</span>
+
+<span class="c1"># Animate the planning process
+</span><span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="p">.</span><span class="nf">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span><span class="mi">6</span><span class="p">))</span>
+<span class="n">ax</span><span class="p">.</span><span class="nf">set_xlim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">rrt_star</span><span class="p">.</span><span class="n">world_size</span><span class="p">)</span>
+<span class="n">ax</span><span class="p">.</span><span class="nf">set_ylim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">rrt_star</span><span class="p">.</span><span class="n">world_size</span><span class="p">)</span>
+<span class="n">ax</span><span class="p">.</span><span class="nf">set_aspect</span><span class="p">(</span><span class="sh">'</span><span class="s">equal</span><span class="sh">'</span><span class="p">)</span>
+
+<span class="n">animated_rrt</span> <span class="o">=</span> <span class="n">animation</span><span class="p">.</span><span class="nc">FuncAnimation</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">animate</span><span class="p">,</span> <span class="n">fargs</span><span class="o">=</span><span class="p">(</span><span class="n">rrt_star</span><span class="p">,</span> <span class="n">ax</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">frames</span><span class="o">=</span><span class="mi">250</span><span class="p">,</span> <span class="n">interval</span><span class="o">=</span><span class="mi">60</span><span class="p">)</span>
+<span class="c1"># animated_rrt.save('rrt_star_dynamics_website.gif', writer='pillow', fps=30) # Use 'pillow' writer for GIFs
+</span>
+<span class="n">plt</span><span class="p">.</span><span class="nf">show</span><span class="p">()</span>
+</code></pre></div></div> </article> </div> </div> <footer class="fixed-bottom" role="contentinfo"> <div class="container mt-0"> © Copyright 2026 Ryan Donald. Powered by <a href="https://jekyllrb.com/" target="_blank" rel="external nofollow noopener">Jekyll</a> with <a href="https://github.com/alshedivat/al-folio" rel="external nofollow noopener" target="_blank">al-folio</a> theme. Hosted by <a href="https://pages.github.com/" target="_blank" rel="external nofollow noopener">GitHub Pages</a>. </div> </footer> <script>
+  window.alFolio = {
+    compatBootstrap: false
+  };
+</script> <script src="/assets/js/nav-toggle.js?v=141bd79a73ebc0f0b6ea58e440ae79fc"></script> <script defer src="https://cdn.jsdelivr.net/npm/masonry-layout@4.2.2/dist/masonry.pkgd.min.js" integrity="sha256-Nn1q/fx0H7SNLZMQ5Hw5JLaTRZp0yILA/FRexe19VdI=" crossorigin="anonymous"></script> <script defer src="https://cdn.jsdelivr.net/npm/imagesloaded@5.0.0/imagesloaded.pkgd.min.js" integrity="sha256-htrLFfZJ6v5udOG+3kNLINIKh2gvoKqwEhHYfTTMICc=" crossorigin="anonymous"></script> <script defer src="/assets/js/masonry.js?v=e49affc7bd2646f6acdad1dbe02c2359" type="text/javascript"></script> <script defer type="text/javascript" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js" integrity="sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI=" crossorigin="anonymous"></script> <script src="/assets/al_math/js/mathjax-setup.js"></script> <script src="/assets/js/tooltips-setup.js?v=fe487e99db6c43751e6e7bdb2d6a0611"></script> <script src="/assets/js/no_defer.js?v=53b1b1a645525975c963ce8bf8bfefcf"></script> <script defer src="/assets/js/common.js?v=87baac90f765f2f3362dcf6aaf312a8a"></script> <script defer src="/assets/js/copy_code.js?v=c8a01c11a92744d44b093fc3bda915df" type="text/javascript"></script> <script defer src="/assets/js/jupyter_new_tab.js?v=896d254890d9b47f0281f63bfccf0dee"></script> <script async src="https://d1bxh8uas1mnw7.cloudfront.net/assets/embed.js"></script> <script async src="https://badge.dimensions.ai/badge.js"></script> <script defer src="https://cdn.jsdelivr.net/npm/medium-zoom@1.1.0/dist/medium-zoom.min.js" integrity="sha256-ZgMyDAIYDYGxbcpJcfUnYwNevG/xi9OHKaR/8GK+jWc=" crossorigin="anonymous"></script> <script defer src="/assets/al_img_tools/js/zoom.js"></script> <script defer src="/assets/js/progress-bar.js?v=499464c5c63ced6cf7ad62509f1e2610" type="text/javascript"></script> <script src="https://cdn.jsdelivr.net/npm/vanilla-back-to-top@7.2.1/dist/vanilla-back-to-top.min.js" integrity="sha256-uMJJ3EoTyfRBoTbR+lrfu1uRQ87RZG8AR3cVNuQVeFg=" crossorigin="anonymous"></script> <script>
+    addBackToTop();
+  </script> <script type="module" src="/assets/al_search/js/search/ninja-keys.min.js"></script> <ninja-keys hidebreadcrumbs noautoloadmdicons placeholder="Type to start searching"></ninja-keys> <script src="/assets/al_search/js/search-setup.js"></script> <script>
+// get the ninja-keys element
+const ninja = document.querySelector('ninja-keys');
+
+// add the home and posts menu items
+ninja.data = [{
+    id: "nav-about",
+    title: "About",
+    section: "Navigation",
+    handler: () => {
+      window.location.href = "/";
+    },
+  },{id: "nav-publications",
+          title: "Publications",
+          description: "publications by categories in reversed chronological order. generated by jekyll-scholar.",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/publications/";
+          },
+        },{id: "nav-projects",
+          title: "Projects",
+          description: "Robotics, reinforcement learning, and hardware projects.",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/projects/";
+          },
+        },{id: "nav-cv",
+          title: "CV",
+          description: "Education, experience, publications, and skills.",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/cv/";
+          },
+        },{id: "projects-ppo-sim2real-on-the-so-arm101",
+          title: 'PPO Sim2Real on the SO-ARM101',
+          description: "Training PPO in Isaac Lab and deploying it on a real SO-ARM101, benchmarked against four established RL libraries",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/01_ppo_sim2real/";
+            },},{id: "projects-proximal-policy-optimization-in-isaac-lab",
+          title: 'Proximal Policy Optimization in Isaac Lab',
+          description: "My PPO implementation trained across a range of Isaac Lab manipulation and control tasks",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/02_ppo_isaaclab/";
+            },},{id: "projects-ppo-on-atari-pong",
+          title: 'PPO on Atari Pong',
+          description: "PPO implemented from scratch and trained on the ALE/Pong-v5 Gymnasium environment",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/03_ppo_atari/";
+            },},{id: "projects-ppo-on-lunar-lander",
+          title: 'PPO on Lunar Lander',
+          description: "PPO implemented from scratch and trained on the LunarLanderContinuous Gymnasium environment",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/04_ppo_lunar_lander/";
+            },},{id: "projects-deep-q-network",
+          title: 'Deep Q-Network',
+          description: "A DQN implementation trained on the Cart Pole Gymnasium environment",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/05_dqn/";
+            },},{id: "projects-reinforcement-learning-implementations",
+          title: 'Reinforcement Learning Implementations',
+          description: "Q-Learning, SARSA, Actor-Critic with eligibility traces, and Deep Q-Learning across Gymnasium environments",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/06_rl_implementations/";
+            },},{id: "projects-so-arm101-smolvla-finetuning",
+          title: 'SO-ARM101 SmolVLA Finetuning',
+          description: "Finetuning SmolVLA for real-world pick-and-place on the SO-ARM101",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/07_smolvla_finetune/";
+            },},{id: "projects-visual-odometry-and-visual-slam-on-kitti",
+          title: 'Visual Odometry and Visual SLAM on KITTI',
+          description: "A stereo visual odometry pipeline extended with keyframing, loop closure, and pose-graph optimization",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/08_visual_slam/";
+            },},{id: "projects-rrt-with-differential-drive-dynamics",
+          title: 'RRT* with Differential-Drive Dynamics',
+          description: "RRT* and kinodynamic RRT* implemented in Python notebooks",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/09_rrt_star/";
+            },},{id: "projects-pokerbot",
+          title: 'PokerBot',
+          description: "A Texas Hold&#39;em playing robot combining YOLOv8 card vision, a DQN poker agent, and a suction-cup arm",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/10_pokerbot/";
+            },},{id: "projects-animated-julia-and-fatou-sets-on-an-fpga",
+          title: 'Animated Julia and Fatou Sets on an FPGA',
+          description: "A VHDL VGA driver and fractal generator targeting an Intel DE10-Lite",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/11_fpga_julia_fatou/";
+            },},{id: "projects-underwater-robot-electrical-infrastructure",
+          title: 'Underwater Robot Electrical Infrastructure',
+          description: "Undergraduate capstone reviving an underwater robot&#39;s electrical systems and moving it onto ROS",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/12_capstone/";
+            },},{id: "projects-advent-of-code-2025",
+          title: 'Advent of Code 2025',
+          description: "My Python solutions to the 2025 Advent of Code challenges",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/13_advent_of_code/";
+            },},{
+        id: 'social-email',
+        title: 'email',
+        section: 'Socials',
+        handler: () => {
+          window.open("mailto:%72%79%61%6E%70%64%6F%6E%61%6C%64@%67%6D%61%69%6C.%63%6F%6D", "_blank");
+        },
+      },{
+        id: 'social-github',
+        title: 'GitHub',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://github.com/ryan-donald", "_blank");
+        },
+      },{
+        id: 'social-scholar',
+        title: 'Google Scholar',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://scholar.google.com/citations?user=Sy9M6-0AAAAJ", "_blank");
+        },
+      },{
+        id: 'social-rss',
+        title: 'RSS Feed',
+        section: 'Socials',
+        handler: () => {
+          window.open("/feed.xml", "_blank");
+        },
+      },{
+      id: 'light-theme',
+      title: 'Change theme to light',
+      description: 'Change the theme of the site to Light',
+      section: 'Theme',
+      handler: () => {
+        setThemeSetting("light");
+      },
+    },
+    {
+      id: 'dark-theme',
+      title: 'Change theme to dark',
+      description: 'Change the theme of the site to Dark',
+      section: 'Theme',
+      handler: () => {
+        setThemeSetting("dark");
+      },
+    },
+    {
+      id: 'system-theme',
+      title: 'Use system default theme',
+      description: 'Change the theme of the site to System Default',
+      section: 'Theme',
+      handler: () => {
+        setThemeSetting("system");
+      },
+    },];
+
+</script> <script src="/assets/al_search/js/shortcut-key.js"></script> </body> </html>
