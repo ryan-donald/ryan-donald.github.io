@@ -1,7 +1,7 @@
 {
   "basics": {
     "name": "Ryan Donald",
-    "label": "Robotics Engineer",
+    "label": "Engineer",
     "image": "",
     "email": "ryanpdonald@gmail.com",
     "url": "https://ryandonald.dev",
@@ -76,15 +76,17 @@
   "education": [
     {
       "institution": "University of Massachusetts, Lowell",
-      "area": "Computer Engineering",
+      "area": "Computer Engineering, 4.0 GPA",
       "studyType": "M.S.",
+      "startDate": "2023",
       "endDate": "2024",
       "score": "4.0 GPA"
     },
     {
       "institution": "University of Massachusetts, Lowell",
-      "area": "Electrical Engineering",
+      "area": "Electrical Engineering, minor in Robotics, 3.95 GPA",
       "studyType": "B.S.",
+      "startDate": "2019",
       "endDate": "2023",
       "score": "3.95 GPA"
     }
