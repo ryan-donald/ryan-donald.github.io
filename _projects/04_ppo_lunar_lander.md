@@ -13,6 +13,16 @@ Information about this environment can be found [here](https://gymnasium.farama.
 
 In this environment, the robot is tasked with piloting the lander into the center of a designated landing zone, without the body of the lander contacting the surface. The complete reward function has many factors involved, which can all be found at the above link.
 
+## Result
+
+The trained agent landing between the flags:
+
+<div align="center">
+  <img src='{{ site.baseurl }}/assets/img/lander_ppo.gif' width="55%" alt='Trained PPO agent landing the Lunar Lander'>
+</div>
+
+The training curve for this policy is at the bottom of the page. The implementation follows.
+
 Basic import functions:
 
 

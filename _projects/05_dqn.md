@@ -14,6 +14,16 @@ This environment can be found here: https://gymnasium.farama.org/environments/cl
 In this environment, the robot is tasked with balancing a pole attached at one end to a cart, which is on a frictionless track. Each time step the robot has the option to apply a fixed force to the cart in either the left or right hand direction. These are the only two options, and the robot must choose one each timestep. If the cart exits the arena on either the left or right hand side, or the angle between the pole and the vertical axes exceeds a set value, the episode will terminate. Within this implementation, each timestep the robot receives a reward of +1.
 
 
+## Result
+
+The trained agent balancing the pole:
+
+<div align="center">
+  <img src='{{ site.baseurl }}/assets/img/website_dqn.gif' width="55%" alt='Trained DQN agent balancing the cart pole'>
+</div>
+
+The training curve for this policy is at the bottom of the page. The implementation follows.
+
 ```python
 import numpy as np
 import gymnasium as gym

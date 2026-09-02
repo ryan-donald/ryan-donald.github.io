@@ -2,7 +2,7 @@
 layout: page
 title: Proximal Policy Optimization in Isaac Lab
 description: My PPO implementation trained across a range of Isaac Lab manipulation and control tasks
-img: assets/img/isaac_drawer_thumb.png
+img: assets/img/thumb_isaac_lab.jpg
 importance: 2
 category: Reinforcement Learning
 ---
@@ -12,9 +12,9 @@ Previously, I have implemented the PPO algorithm to work within multiple gymnasi
 My implementation of PPO that I am using can be found [here](https://github.com/ryan-donald/ppo).
   
 These issues I found in my implementation and subsequently fixed are as follows:  
-- I found that the initialization of the weights in both my Actor and Critic networks was insufficient. While solving the Atari environment, I noticed this as well, and found that I should be utilizing Orthogonal weight initialization, and this worked for that environment. However, I still had issues in this environment, and I found that I had missed that the weights of the output layer should have a different gain, *0.01* for the Actor, and *1* for the Critic.  
-- I also was not utilizing KL divergence for an adaptive learning rate. I found that this improved the performance of my PPO algorithm and allowed it to develop a better solution for each environment.  
-- Lastly, my implementation was struggling when compared to some of the implementations provided with IsaacLab, and I found that Observation Normalization could improve the performance. Previously, I have utilized min/max normalization, however these environments do not have a defined min/max for their observations. I am utilizing the RSL-RL implementation of Welfords Algorithm to do this.
+- I found that the initialization of the weights in both my Actor and Critic networks was insufficient. While solving the Atari environment, I noticed this as well, and found that I should be using orthogonal weight initialization, and this worked for that environment. However, I still had issues in this environment, and I found that I had missed that the weights of the output layer should have a different gain, *0.01* for the Actor, and *1* for the Critic.  
+- I also was not using KL divergence for an adaptive learning rate. I found that this improved the performance of my PPO algorithm and allowed it to develop a better solution for each environment.  
+- Lastly, my implementation was struggling when compared to some of the implementations provided with IsaacLab, and I found that Observation Normalization could improve the performance. Previously, I used min/max normalization, however these environments do not have a defined min/max for their observations. I use the RSL-RL implementation of Welford's algorithm to do this.
 
 ## Benchmarking against the libraries bundled with Isaac Lab
 
@@ -58,7 +58,7 @@ On Ant my implementation and rsl_rl track each other almost exactly in reward, b
 
 Reach is the SO-ARM101 task I later deployed to a real robot, and it separates the frameworks the most. Mine is the only one that climbs and then holds near its best through the end of training (final ≈ 0.91 against a best of ≈ 0.93) — the other four all peak somewhere mid-run and then regress toward 0.55–0.75.
 
-Across all three tasks my implementation posts the highest throughput and the fastest wall-clock of anything I tested, 12–18% ahead of the next-quickest library and up to twice as fast end-to-end as sb3, while matching or beating the best reward of any of them. A fuller write-up of the Reach result and how it transferred to hardware is on the [sim2real page](/portfolio/1-PPO_Sim2Real/).
+Across all three tasks my implementation posts the highest throughput and the fastest wall-clock of anything I tested, 12–18% ahead of the next-quickest library and up to twice as fast end-to-end as sb3, while matching or beating the best reward of any of them. A fuller write-up of the Reach result and how it transferred to hardware is on the [sim2real page]({{ site.baseurl }}/projects/01_ppo_sim2real/).
 
 <div align="center">
   <img src='{{ site.baseurl }}/assets/img/benchmark_cartpole_reward_vs_time.png' width='100%' alt='Cartpole reward vs wall-clock time, all five frameworks, 3 seeds each'>

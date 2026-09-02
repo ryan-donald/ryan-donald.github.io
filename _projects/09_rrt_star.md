@@ -14,6 +14,18 @@ In my research, I found that the two algorithms are very similar, with two key d
 
 Lastly, although theoretically this is the best straight line path, due to the shape and location of obstacles it is possible for this path to perform poorly with robots, as the path may not be smooth or physically possible due to the vehicle dynamics. This is why I also implemented RRT\* with vehicle dynamics. Typically this is known as kinodynamic planning, which simply means we are involving the dynamics of the vehicle in the path planning as well. The main difference in this from typical RRT\* is that the algorithm maintains a pose with each node as well, and to steer points, it randomly samples a number of forward and angular velocities within the bounds of the robot, and simulates that movement, and then chooses the commands which are closest to the sampled point. 
 
+## Results
+
+Both planners run on the same map, with the same start, goal, and obstacles. The difference the dynamics make is visible immediately: plain RRT\* produces straight-line spokes radiating from the start, while the kinodynamic version produces smooth, curved trajectories that a differential-drive robot could actually follow.
+
+<p float="left">
+  <video src='{{ site.baseurl }}/assets/img/rrt_star_website.mp4' width="49%" style="vertical-align: middle" autoplay loop muted playsinline></video> <video src='{{ site.baseurl }}/assets/img/rrt_star_dynamics_website.mp4' width="49%" style="vertical-align: middle" autoplay loop muted playsinline></video>
+</p>
+
+Both animations show the tree growing over 5,000 samples. Note that the path (magenta) keeps improving after it first reaches the goal — that continued refinement is the property that separates RRT\* from RRT.
+
+## Implementation
+
 Below, I show two jupyter notebook files where I first implemented RRT\*, and then in the second I implement RRT\* with differential drive robot dynamics. 
 
 
@@ -38,7 +50,7 @@ class Node:
         self.cost = 0.0
 ```
 
-Below is the RRTStar class, which implements the RRT* algorithm. Within this class, there are various member variables and functions defined. This algorithm randomly samples points within a map, creating a tree for path planning in the map. If nodes are further away than a maximum distance, they will be moved closer to the node directly along a line connecting the sampled node and the nearest node. If this path is interrupted by an object, the node will not be added. The specific improvement of RRT* is that the parent of the new node is determined by checking the cost of each nearby node and choosing the parent which will result in the minimum cost. After this, it checks if any of the nearby nodes will benefit from having the new node as it's parent node. Additionally, RRT* will continue sampling and updating the tree after a solution is found, converging towards an optimal path, unlike RRT which stops once a path is found.
+Below is the RRTStar class, which implements the RRT* algorithm. Within this class, there are various member variables and functions defined. This algorithm randomly samples points within a map, creating a tree for path planning in the map. If nodes are further away than a maximum distance, they will be moved closer to the node directly along a line connecting the sampled node and the nearest node. If this path is interrupted by an object, the node will not be added. The specific improvement of RRT* is that the parent of the new node is determined by checking the cost of each nearby node and choosing the parent which will result in the minimum cost. After this, it checks if any of the nearby nodes will benefit from having the new node as its parent node. Additionally, RRT* will continue sampling and updating the tree after a solution is found, converging towards an optimal path, unlike RRT which stops once a path is found.
 
 
 
@@ -279,7 +291,7 @@ class Node:
         self.trajectory = []
 ```
 
-Below is the RRTStarDynamics class. This class contains many similar functions as the previous RRTStar class I implemented. For this specific implementation, main difference is the changes to the *steer()* function, the *rewire()* function, the *choose_parent()* function, and the *check_collision()* function. The *simulate_trajectory()* function now utilizes the differential-drive robot dynamics to simulate a discretized trajectory.  
+Below is the RRTStarDynamics class. This class contains many similar functions as the previous RRTStar class I implemented. For this specific implementation, the main difference is the changes to the *steer()* function, the *rewire()* function, the *choose_parent()* function, and the *check_collision()* function. The *simulate_trajectory()* function now uses the differential-drive robot dynamics to simulate a discretized trajectory.  
   
   
 The *steer()* function now samples *num_samples* trajectories with *simulate_trajectory()*. This is done with a random control input *v, w* based upon the robot's control limits. The trajectory that ends closest to the sampled node is chosen as the location of the new node, alongside the sampled trajectory.  

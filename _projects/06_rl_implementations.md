@@ -2,6 +2,7 @@
 layout: page
 title: Reinforcement Learning Implementations
 description: Q-Learning, SARSA, Actor-Critic with eligibility traces, and Deep Q-Learning across Gymnasium environments
+img: assets/img/thumb_rl_implementations.jpg
 importance: 6
 category: Reinforcement Learning
 ---

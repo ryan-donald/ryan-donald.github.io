@@ -13,6 +13,16 @@ Information about both environments can be found [here](https://ale.farama.org/e
 
 In this environment, the agent is tasked with playing the classic game of Pong against a computer opponent. The agent receives a +1 reward each time it scores a point, a -1 reward each time the computer scores a point, and a 0 reward for every other timestep. A perfect agent will score +21 every episode, and a pure random agent will score -21 every episode.
 
+## Result
+
+The trained policy plays a full episode below. It wins comfortably against the built-in opponent — the recorded episode ends 20–0.
+
+<div align="center">
+  <video src='{{ site.baseurl }}/assets/img/pong_ppo.mp4' width="40%" style="image-rendering: pixelated" autoplay loop muted playsinline></video>
+</div>
+
+The implementation below is the one that produced this policy.
+
 Basic import functions:
 
 
@@ -40,12 +50,12 @@ print(f"Using device: {device}")
     Using device: cuda
 
 
-The cell below implements the Actor network and the Critic network The Actor network inputs an 84x84x4 state representing four stacked 84x84 gray scale images from the environment, and outputs a softmax layer representing the probabilities for each action in the policy. The Critic network inputs the same 84x84x4 state representing four stacked 84x84 gray scale images from the environment, and outputs a single value based upon the state.  
+The cell below implements the Actor network and the Critic network. The Actor network inputs an 84x84x4 state representing four stacked 84x84 gray scale images from the environment, and outputs a softmax layer representing the probabilities for each action in the policy. The Critic network inputs the same 84x84x4 state representing four stacked 84x84 gray scale images from the environment, and outputs a single value based upon the state.  
   
 The state is represented as four consecutive 84x84 gray scale images from the environment for a few reasons:  
-1. The image is downscaled to 84x84 as determined in the paper "Playing Atari with Deep Learning" by Mnih et al, from Google DeepMind. This reduces the number of pixels improving computation time without losing too much information to determine the state.
+1. The image is downscaled to 84x84 as determined in the paper "Playing Atari with Deep Reinforcement Learning" by Mnih et al., from DeepMind. This reduces the number of pixels improving computation time without losing too much information to determine the state.
 2. In the same purpose of reducing the size of the state, the image is gray scaled as color information is not important, reducing the number of pixels to one third.
-3. Four consecutive images are stacked on top of eachother to allow the network to learn based on the velocity of the ball, as well as position. With only a single image, it is impossible to determine the velocity of the ball.  
+3. Four consecutive images are stacked on top of each other to allow the network to learn based on the velocity of the ball, as well as position. With only a single image, it is impossible to determine the velocity of the ball.  
 
 
 ```python
