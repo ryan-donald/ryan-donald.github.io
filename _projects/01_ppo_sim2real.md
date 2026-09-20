@@ -1,55 +1,86 @@
 ---
 layout: page
-title: PPO Sim2Real on the SO-ARM101
-description: Training PPO in Isaac Lab and deploying it on a real SO-ARM101, benchmarked against four established RL libraries
+title: Sim-To-Real Transfer of a Learned Policy From Isaac Lab to a Real SO-ARM101
+description: System identification for stronger sim-to-real transfer on an open-source SO-ARM101.
 img: assets/img/thumb_so101_reach.jpg
 importance: 1
 category: Reinforcement Learning
 ---
 
-## Motivation
-Sim2real disconnects are a major pain point in deploying policies trained using typical reinforcement learning methods into the real world. Using my implementation of PPO, I wanted to gain experience with this process, by first training a policy within the IsaacLab simulator, and deploying it on a real-world robot, the SO-ARM101. I have previously used this implementation of PPO to train with a number of tasks provided in the IsaacLab simulator, and for this I trained policies for two tasks. The first is a simple reach task, where the policy learns to move the end-effector of the robot to a specified location. The second is a task to grasp a cube from the table in front of the robot and lift it to a designated location.
+I trained a policy in Isaac Lab with [my own PPO implementation]({{ site.baseurl }}/projects/02_ppo_isaaclab/), deployed it to a real SO-ARM101, and it performed poorly compared to in the Isaac Lab simulator. I went through a variety of stages with the mis-match of the performance in the sim and the performance in the real world. First, it was dramatically bad, it would overshoot the goal, oscillate around the goal, and occasionally impact the table. I had spent some time working to match the dynamics of the real robot to the sim, but it was clearly not enough.
 
-## Sim2Real disconnects and solutions
-LeRobot is used to command this robot and retrieve the current joint-states. These commands and observations are in normalized ranges [-100, 100] for each motor except for the gripper, which is in the range [0, 100]. Through the calibration of the robot, LeRobot abstracts the specific motor encoder values away from the user, and works in terms of a normalized workspace range, representing the limits of each joint. In my initial IsaacLab environment, the joints were controlled directly with radians based on the URDF. To address this gap, I implemented a similar normalization technique for both the observation term and the action term as inputs and outputs of the network.
+I realized here that I would need to spend time collecting data on the real robot, and identifying parameter values for the simulator. Not only this, but also employing domain randomization for these parameters in the simulator, as I was experimentally determining these values and did not want the policy to overfit to the specific values. I finally got the policy into a good, but not great, state. An easy explanation would have been that the servos were cheap and a combination of gear backlash and other shortcomings was the reason it was not perfect. That explanation would have been wrong, and the process I went through to figure out why that is wrong is what I will detail here. The arm was fine, my simulation of it was not, and a policy trained against a simulator that does not match the real world learns a control strategy that only makes sense in the simulator.
 
-Additionally, the initial values for the motor parameters did not match the real-world robot. The real-world robot uses a PD controller to move each motor to the commanded joint position. In IsaacLab, the proportional (P) term of the controller is represented by the stiffness value of a joint, and the derivative (D) term of the controller is represented by the damping value of a joint. Additionally, the velocity limit for the joints was initially set at a value around 30% of the real-world velocity limit, which meant that the model was trained on a much slower robot. As a result of these mis-matches, the model performed as expected in the simulator, but poorly on the real-world robot. To fix this, I collected data on the motor's step responses, as well as the velocity that the motors moved at. Using this, I tuned the simulator values to closely match the values the real-world motors had, and once I was able to re-train the model, it worked as expected on the real-world robot. 
+The policy is trained to move the end-effector from any joint configuration to a specified position in the robot's coordinate frame. On the real robot, it simply iterates through a randomly sampled list of targets at specific intervals.
 
-In the current state of this project, I have the reach task working as expected on the real-world robot. A video of the reach task on the real-world robot can be found below:
 [![PPO SO-ARM101 sim2real](https://img.youtube.com/vi/MzxyW7mrM0s/maxresdefault.jpg)](https://www.youtube.com/watch?v=MzxyW7mrM0s)
 
-In this, the robot is controlled by a model which is trained to control and move the robot from any joint state to one where the end-effector is at a specific position in the robot's coordinate frame. Once the end-effector is within 4cm of the target position, a new target position is randomly sampled in the workspace and the robot then moves to that location. As you can see in the video, the motion is not perfectly smooth, as the commands for each joint are specifying joint positions, not velocities, and there is some backlash in the motors themselves as they are inexpensive hobby motors. Regardless, I was able to train a model within IsaacLab and deploy it onto a real-world robot.
+My PPO implementation is [here](https://github.com/ryan-donald/ppo), and the deployment scripts for the real robot are [here](https://github.com/ryan-donald/so101_ppo).
 
-## Benchmarking my PPO implementation against established libraries
+## The method
 
-The policy deployed above was trained entirely with my own implementation of PPO, so a fair question is whether writing my own trainer cost me anything against the libraries that ship with Isaac Lab. To answer that, I benchmarked it against all four of them — [rsl_rl](https://github.com/leggedrobotics/rsl_rl), [rl_games](https://github.com/Denys88/rl_games), [skrl](https://github.com/Toni-SM/skrl), and [sb3](https://github.com/DLR-RM/stable-baselines3) — on this exact reach task, `Ryan-Reach-SO-ARM101-Normalized-v0`.
+The systematic process I followed to fix the gap.
 
-Every run used identical settings on the same GPU (an RTX 3070) under Isaac Lab 3.0: 12,288 parallel environments, headless, 7,500 iterations at 24 steps per environment, with each library's agent config hyperparameter-matched to mine. Each framework was run over three seeds (42, 43, 44). The table reports the seed-averaged best mean episode reward reached during training, since the best checkpoint is the one that actually gets deployed to the robot.
+1. **Determine a parameter to measure** After determining what parameter I wanted to measure, I would define a test to collect the necessary metrics.
+2. **Fit the simulated system** Once the metrics were gathered, I analyzed them and attempted to fit the simulated model to the predicted value.
+3. **Verify in simulation** I would first perform a training run in the sim, to verify that the policy still learns to solve the task.
+4. **Verify on hardware** Next, I would verify that the performance of the new policy on the real robot is better than the performance from the old policy.
+5. **Keep what transferred** If the resulting transfer improved, I would keep what I adjusted, if not, I would review my beliefs of why I wanted to target that parameter, and how the results differed from what I expected.
 
-| Framework | Throughput (steps/s) | Wall-clock (min) | Best reward |
+## The various mis-matches I had
+
+**Action Space Representation** I command the real robot through LeRobot, uses a normalized joint space, [-100, 100], based on initial robot calibration. My Isaac Lab environment commanded joint angles in radians from the URDF. To fix this, I normalized the observations and actions within the simulator to match this [-100, 100] joint space that the real robot uses.
+
+**Servo PD terms** The robot's joints are position controlled with each servo utilizing an internal PD loop, which maps onto a joint's stiffness and damping in the Isaac Lab simulation. My original values for these were far too stiff, and they trained perfectly well in simulation, which is the problem. This resulted in a policy which learned to control initially as a somewhat bang-bang controller for each joint. Recording step responses and fitting against them put the effective proportional gain closer to 16, with a fit of roughly kp 17.8, kd 1.5, and a friction term of 0.12.
+
+Originally, I gather a quick step response for the motors, and tried to visually match the curve from the same motion in the sim to this. This ultimately resulted in myself choosing terms which did not make physical sense on the robot, as I was trying to quickly settle this. The curves looked similar, but I only had a single step response and I did not put much thought into this besides "make the curves match". This ended up biting me when I started the sim to real transfer signficantly. Even after I went back and re-did this with more reasonable gains, I still had a slight issue, in that the gains did not accurately match how the arm performed when fighting against gravity and moving with it.
+
+**Joint Velocity Limits** I initially used a joint velocity limit I found online for these motors. This ended up resulting in a very fast and twitchy policy, as it was trying to utilize the maximum speed anywhere it could, to maximize the reward. To fix this, I decided to add a hard velocity limit within each motor, utilizing an internal velocity goal register. This results in much smoother and consistent motion, while also adding a level of safety in case the policy has some unintended behavior.
+
+**Action delay** Initially I trained the robot arm in the simulator without any action delay. Looking back, this was clearly an optimistic approach, and I was betting on the policy being able to handle it. As I went through the process of measuring these other parameters, I decided that if I wanted it to truly be as accurate as I could make it for the best transfer, I should measure the delay from when the policy takes an action, to when it shows up in the observation. I measured this delay at about 38 ms, a little over two control steps at 60 Hz. It is an easy measurement to get wrong, so I confirmed it three separate ways before changing anything, and it came out to roughly half of the delay I had been training with by that point.
+
+**Inertia and acceleration limits** After the above changes, I still noticed that the arm had an odd jitter when it reached the goal, for about half of the episodes. I determined that a partial cause for this were mismatched inertia and acceleration limits for each actuator, which caused a mismatch between the physical behavior in the sim and in the real world.
+
+**Encoder quantization** The joint positions the policy reads arrive in discrete encoder steps rather than as continuous values, so I quantized the observations in the simulator to match. This quantization on its own is not a major issue, since a policy trained against continuous observations generalizes to seeing only a subset of them at deployment.
+
+**Servo Deadzone** The servo will not move at all for small changes, around 0.3 to 1.0 normalized steps, depending on the specific joint and the current joint configuration. This, I believe, is due to static friction in the gearbox that prevents small movements. I implemented a deadzone band in the simulator and it degraded the performance of the policy. The arm would sag and sway due to gravity in the simulator more than it would on the real robot. To overcome this I need to model static friction within the simulator, but I have yet to determine a method for that.
+
+Throughout all of this I kept domain randomization on. The goal of measuring these parameters was never to produce one perfect model of one specific robot, it was to center the range the policy trains across on something close to the real thing.
+
+## How much this actually helped
+
+Once I had all of these changes in, I ran the new policy and the previously deployed policy against the same set of goals on the real arm, and scored both on metrics I had picked before running anything. I wanted to avoid the temptation of looking at the results first and deciding afterwards what counted as an improvement.
+
+The oscillation around the goal, which is the problem that started all of this, mostly went away. Scoring 40 goals per policy:
+
+| | Original Policy | Intermediate Policy | Final Policy |
 |---|---:|---:|---:|
-| **my implementation** | **1,283,631** | **29.5** | **0.927** |
-| skrl | 1,084,497 | 34.7 | 0.861 |
-| rl_games | 1,072,870 | 35.1 | 0.900 |
-| rsl_rl | 844,198 | 44.3 | 0.640 |
-| sb3 | 627,026 | 59.5 | 0.727 |
+| goals showing jitter | 15% | 0% | 0% |
+| wobble while holding, p95 (encoder ticks) | 28 | 0.0 | 0.0 |
+| settled error | 4.9 mm | 6.6 mm | 4.9 mm |
 
-My implementation reaches both the highest throughput and the highest reward on this task, finishing training around five minutes sooner than the next-fastest library and roughly twice as fast as sb3. The more interesting result is in the shape of the curves rather than the peak numbers. The other four frameworks all peak somewhere in the middle of the run and then regress, settling back toward 0.55–0.75, while mine climbs and then holds near its best through the end of training (final ≈ 0.91 against a best of ≈ 0.93). For sim2real that stability matters more than the peak does, because a run that quietly degrades after its best checkpoint makes choosing which policy to flash onto the robot a matter of luck.
+The buzzing at the goal is gone, and the arm now arrives and stops, which it did not do before.
 
-<div align="center">
-  <img src='{{ site.baseurl }}/assets/img/benchmark_reach_reward_vs_time.png' width='100%' alt='Reach reward vs wall-clock time, all five frameworks, 3 seeds each'>
-</div>
+What did not really change was the accuracy. The final distance to the goal stayed about where it was, within a few millimeters either way, which was not what I expected going in. All of this work bought smoothness and predictability rather than precision.
 
-I ran the same comparison on two other tasks of differing difficulty, a cartpole task and an ant locomotion task, with the same result — details and those tables are in the [repository README](https://github.com/ryan-donald/ppo).
+I do not have a confirmed answer for what sets the accuracy floor. My first assumption was the domain randomization, since the policy trains against a per-episode calibration offset of about 0.6° per joint, which works out to roughly 5mm at the end-effector and lines up almost exactly with the error I measure. I have found that letting the agent train longer allows it to achieve a policy that is much closer to the goal, and settles. I tried with and without a gated L2 action rate penalty, which applied a large penalty for changing actions near the goal, but I found that this did not really improve performance over the standard reward distribution, especially when performing longer training runs.
 
-## Code performance and control rate
-I profiled the performance of my deployment script for the real robot with cProfile, and the results showed that the control loop of requesting joint-states from the robot through sending actions to the robot could run up to 500hz on the real robot. I trained my policy in rates of 15hz, 30hz, 60hz, 200hz, 400hz. As the rate that the model is executing increases, from 15hz to 400hz, the model appears to become smoother. To achieve this, I had to remove the dynamic target resampling once the end-effector is within a threshold of the target, and replace it with a set of 20 pre-sampled targets that the model provides equal execution time to each sequentially. In a robot deployed to solve a real-world task, I would do something similar, where the control loop runs on its own thread, and information about the environment would be calculated on a separate thread, to increase the overall control rate of the robot.
-
-My implementation of PPO that I am using can be found [here](https://github.com/ryan-donald/ppo), and my deployment scripts can be found [here](https://github.com/ryan-donald/so101_ppo).
-
-
-My trained models are shown below, both the final visual performance, and the fine grained end-effector position reward. This reward is a fine-grained reward for the end-effector position relative to the goal. It receives a reward for each step that it is close to the goal position, with a larger reward per step the closer the end-effector is to the goal.
+The plots below show training progress for the deployed policy alongside its behavior in simulation. The reward shown is the fine-grained end-effector position term, which pays out on every step the end-effector is near the goal, and pays more the closer it is.
 
 <p float="left">
-    <img src='{{ site.baseurl }}/assets/img/reach_training.png' width='49%'> <img src='{{ site.baseurl }}/assets/img/so101_reach.gif' width="49%"> 
+  <img src='{{ site.baseurl }}/assets/img/reach_training.png' width='49%'> <img src='{{ site.baseurl }}/assets/img/so101_reach.gif' width="49%">
 </p>
+
+## What is still unsolved
+
+I would like to have a policy that learns to be both incredibly precise, and incredibly stable. This ideal policy moves the end-effector exactly to the goal, and stops it there. I am unsure if this is 100% possible with the randomization in the task, but my goal is to get it as close as possible.
+
+Only the reach task has been deployed on the real robot. I have push and lift trained and evaluated in the simulator against the corrected model, but I do not have the confidence that they will safely deploy to the real robot. Currently, there is no method for detecting the live position of the cube, which is necessary for these two tasks.
+
+## What I would take to the next robot
+
+First, this experience reinforced my belief that it is almost always best to understand the whole picture, or as much of it as you can, before starting work on a project. On top of this, systematically working through a problem is the only way to truly track progress and ensure that you are not wasting time.
+
+The second is to decide what counts as an improvement before running the test. I was repeatedly tempted to run a comparison, look at all of the numbers, and pick whichever one had improved. I find that the best practice is to determine beforehand what constitutes a success for a test, or at least what you think it should look like. The possible failure modes are also something to think about, and both of these can help you reason through the results of the test and what they mean, good or bad.
+
+The third is that the metric I cared about most was not the one that predicted real-world behavior. The success rate in simulation turned out to be a weak predictor of how a policy would actually behave on the arm, while the smoothness metrics lined up well. The success rate in the simulation only matters for the real-world behavior if the simulator actually matches the real world, or at least very closely! At one point the policy with the better success rate in the simulator was clearly the worse one to put on the robot.
