@@ -115,15 +115,15 @@ Reach (direct, Newton) — 24 steps/env
 The plots below show the training progress across the range of Isaac Lab environments I have used this implementation on:
 
 <p float="left">
-  <img src='{{ site.baseurl }}/assets/img/training_plot_episodes_Isaac-Cartpole-v0.png' width='49%'> <video src='{{ site.baseurl }}/assets/img/isaac_cartpole.mp4' width="49%" style="vertical-align: middle" autoplay loop muted playsinline></video>
-</p>
-
-<p float="left">
   <img src='{{ site.baseurl }}/assets/img/training_plot_episodes_Isaac-Reach-SO-ARM101-v0.png' width='49%'> <video src='{{ site.baseurl }}/assets/img/isaac_reach_so101.mp4' width="49%" style="vertical-align: middle" autoplay loop muted playsinline></video>
 </p>
 
 <p float="left">
-  <img src='{{ site.baseurl }}/assets/img/training_plot_episodes_Isaac-Lift-Cube-Franka-v0.png' width='49%'> <video src='{{ site.baseurl }}/assets/img/isaac_lift.mp4' width="49%" style="vertical-align: middle" autoplay loop muted playsinline></video>
+  <img src='{{ site.baseurl }}/assets/img/training_plot_episodes_Isaac-Cartpole-v0.png' width='49%'> <video src='{{ site.baseurl }}/assets/img/isaac_cartpole.mp4' width="49%" style="vertical-align: middle" autoplay loop muted playsinline></video>
+</p>
+
+<p float="left">
+  <img src='{{ site.baseurl }}/assets/img/training_plot_episodes_Isaac-Fourbar-Pole-Swingup-v0.png' width='49%'> <video src='{{ site.baseurl }}/assets/img/isaac_fourbar.mp4' width="49%" style="vertical-align: middle" autoplay loop muted playsinline></video>
 </p>
 
 <p float="left">
@@ -131,7 +131,15 @@ The plots below show the training progress across the range of Isaac Lab environ
 </p>
 
 <p float="left">
-  <img src='{{ site.baseurl }}/assets/img/training_plot_episodes_Isaac-Repose-Cube-Allegro-v0.png' width='49%'> <video src='{{ site.baseurl }}/assets/img/isaac_repose_allegro.mp4' width="49%" style="vertical-align: middle" autoplay loop muted playsinline></video>
+  <img src='{{ site.baseurl }}/assets/img/training_plot_episodes_Isaac-Velocity-Rough-UnitreeGo2-v0.png' width='49%'> <video src='{{ site.baseurl }}/assets/img/isaac_go2_rough.mp4' width="49%" style="vertical-align: middle" autoplay loop muted playsinline></video>
+</p>
+
+<p float="left">
+  <img src='{{ site.baseurl }}/assets/img/training_plot_episodes_Isaac-Reorient-Cube-Shadow-v0.png' width='49%'> <video src='{{ site.baseurl }}/assets/img/isaac_shadow_reorient.mp4' width="49%" style="vertical-align: middle" autoplay loop muted playsinline></video>
+</p>
+
+<p float="left">
+  <img src='{{ site.baseurl }}/assets/img/training_plot_episodes_Isaac-Shadow-Handover-v0.png' width='49%'> <video src='{{ site.baseurl }}/assets/img/isaac_shadow_handover.mp4' width="49%" style="vertical-align: middle" autoplay loop muted playsinline></video>
 </p>
 
 The reach task above is the one I have done sim-to-real transfer with a real SO-ARM101, which turned out to be a much harder problem than training it was. That is [its own write-up]({{ site.baseurl }}/projects/01_ppo_sim2real/).
