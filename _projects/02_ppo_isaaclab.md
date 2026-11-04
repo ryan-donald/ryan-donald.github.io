@@ -188,4 +188,8 @@ The plots below show the training progress across the range of Isaac Lab environ
   <img src='{{ site.baseurl }}/assets/img/training_plot_episodes_Isaac-Shadow-Handover-v0.png' width='49%'> <video src='{{ site.baseurl }}/assets/img/isaac_shadow_handover.mp4' width="49%" style="vertical-align: middle" autoplay loop muted playsinline></video>
 </p>
 
+<p float="left">
+  <img src='{{ site.baseurl }}/assets/img/training_plot_episodes_Isaac-Lift-KukaAllegro.png' width='49%'> <video src='{{ site.baseurl }}/assets/img/isaac_lift_kuka_allegro.mp4' width="49%" style="vertical-align: middle" autoplay loop muted playsinline></video>
+</p>
+
 The reach task above is the one I have done sim-to-real transfer with a real SO-ARM101, which turned out to be a much harder problem than training it was. That is [its own write-up]({{ site.baseurl }}/projects/01_ppo_sim2real/).
