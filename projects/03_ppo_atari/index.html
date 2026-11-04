@@ -18,7 +18,7 @@
 <span class="nf">print</span><span class="p">(</span><span class="sa">f</span><span class="sh">"</span><span class="s">Using device: </span><span class="si">{</span><span class="n">device</span><span class="si">}</span><span class="sh">"</span><span class="p">)</span>
 </code></pre></div></div> <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Using device: cuda
 </code></pre></div></div> <p>The cell below implements the Actor network and the Critic network. The Actor network inputs an 84x84x4 state representing four stacked 84x84 gray scale images from the environment, and outputs a softmax layer representing the probabilities for each action in the policy. The Critic network inputs the same 84x84x4 state representing four stacked 84x84 gray scale images from the environment, and outputs a single value based upon the state.</p> <p>The state is represented as four consecutive 84x84 gray scale images from the environment for a few reasons:</p> <ol> <li>The image is downscaled to 84x84 as determined in the paper “Playing Atari with Deep Reinforcement Learning” by Mnih et al., from DeepMind. This reduces the number of pixels improving computation time without losing too much information to determine the state.</li> <li>In the same purpose of reducing the size of the state, the image is gray scaled as color information is not important, reducing the number of pixels to one third.</li> <li>Four consecutive images are stacked on top of each other to allow the network to learn based on the velocity of the ball, as well as position. With only a single image, it is impossible to determine the velocity of the ball.</li> </ol> <div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">class</span> <span class="nc">Actor</span><span class="p">(</span><span class="n">nn</span><span class="p">.</span><span class="n">Module</span><span class="p">):</span>
-    
+
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="n">action_dim</span><span class="p">):</span>
         <span class="nf">super</span><span class="p">(</span><span class="n">Actor</span><span class="p">,</span> <span class="n">self</span><span class="p">).</span><span class="nf">__init__</span><span class="p">()</span>
         <span class="n">self</span><span class="p">.</span><span class="n">conv</span> <span class="o">=</span> <span class="n">nn</span><span class="p">.</span><span class="nc">Sequential</span><span class="p">(</span>
@@ -42,7 +42,7 @@
             <span class="k">if</span> <span class="nf">isinstance</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="p">(</span><span class="n">nn</span><span class="p">.</span><span class="n">Conv2d</span><span class="p">,</span> <span class="n">nn</span><span class="p">.</span><span class="n">Linear</span><span class="p">)):</span>
                 <span class="n">nn</span><span class="p">.</span><span class="n">init</span><span class="p">.</span><span class="nf">orthogonal_</span><span class="p">(</span><span class="n">module</span><span class="p">.</span><span class="n">weight</span><span class="p">,</span> <span class="n">gain</span><span class="o">=</span><span class="n">np</span><span class="p">.</span><span class="nf">sqrt</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span>
                 <span class="n">nn</span><span class="p">.</span><span class="n">init</span><span class="p">.</span><span class="nf">constant_</span><span class="p">(</span><span class="n">module</span><span class="p">.</span><span class="n">bias</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
-                
+
     <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
         <span class="n">x</span> <span class="o">=</span> <span class="n">self</span><span class="p">.</span><span class="nf">conv</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
         <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="p">.</span><span class="nf">view</span><span class="p">(</span><span class="n">x</span><span class="p">.</span><span class="nf">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
@@ -86,25 +86,25 @@
         <span class="n">self</span><span class="p">.</span><span class="n">actor</span> <span class="o">=</span> <span class="nc">Actor</span><span class="p">(</span><span class="n">action_dim</span><span class="p">).</span><span class="nf">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
         <span class="n">self</span><span class="p">.</span><span class="n">critic</span> <span class="o">=</span> <span class="nc">Critic</span><span class="p">().</span><span class="nf">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
         <span class="n">self</span><span class="p">.</span><span class="n">optimizer</span> <span class="o">=</span> <span class="n">optim</span><span class="p">.</span><span class="nc">Adam</span><span class="p">(</span>
-            <span class="nf">list</span><span class="p">(</span><span class="n">self</span><span class="p">.</span><span class="n">actor</span><span class="p">.</span><span class="nf">parameters</span><span class="p">())</span> <span class="o">+</span> <span class="nf">list</span><span class="p">(</span><span class="n">self</span><span class="p">.</span><span class="n">critic</span><span class="p">.</span><span class="nf">parameters</span><span class="p">()),</span> 
+            <span class="nf">list</span><span class="p">(</span><span class="n">self</span><span class="p">.</span><span class="n">actor</span><span class="p">.</span><span class="nf">parameters</span><span class="p">())</span> <span class="o">+</span> <span class="nf">list</span><span class="p">(</span><span class="n">self</span><span class="p">.</span><span class="n">critic</span><span class="p">.</span><span class="nf">parameters</span><span class="p">()),</span>
             <span class="n">lr</span><span class="o">=</span><span class="n">lr</span>
         <span class="p">)</span>
         <span class="n">self</span><span class="p">.</span><span class="n">gamma</span> <span class="o">=</span> <span class="n">gamma</span>
         <span class="n">self</span><span class="p">.</span><span class="n">gae_lambda</span> <span class="o">=</span> <span class="n">gae_lambda</span>
         <span class="n">self</span><span class="p">.</span><span class="n">clip_epsilon</span> <span class="o">=</span> <span class="n">clip_epsilon</span>
-    
+
     <span class="k">def</span> <span class="nf">select_action</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
-        
+
         <span class="k">with</span> <span class="n">torch</span><span class="p">.</span><span class="nf">no_grad</span><span class="p">():</span>
             <span class="n">probs</span> <span class="o">=</span> <span class="n">self</span><span class="p">.</span><span class="nf">actor</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
-        
+
         <span class="n">dist</span> <span class="o">=</span> <span class="nc">Categorical</span><span class="p">(</span><span class="n">probs</span><span class="p">)</span>
         <span class="n">action</span> <span class="o">=</span> <span class="n">dist</span><span class="p">.</span><span class="nf">sample</span><span class="p">()</span>
         <span class="n">log_prob</span> <span class="o">=</span> <span class="n">dist</span><span class="p">.</span><span class="nf">log_prob</span><span class="p">(</span><span class="n">action</span><span class="p">)</span>
         <span class="n">entropy</span> <span class="o">=</span> <span class="n">dist</span><span class="p">.</span><span class="nf">entropy</span><span class="p">()</span>
-        
+
         <span class="k">return</span> <span class="n">action</span><span class="p">.</span><span class="nf">squeeze</span><span class="p">(),</span> <span class="n">log_prob</span><span class="p">.</span><span class="nf">squeeze</span><span class="p">(),</span> <span class="n">entropy</span><span class="p">.</span><span class="nf">squeeze</span><span class="p">()</span>
-    
+
     <span class="k">def</span> <span class="nf">compute_gae</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="n">rewards</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">dones</span><span class="p">,</span> <span class="n">next_value</span><span class="p">):</span>
         <span class="n">num_steps</span> <span class="o">=</span> <span class="n">rewards</span><span class="p">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
         <span class="n">advantages</span> <span class="o">=</span> <span class="n">torch</span><span class="p">.</span><span class="nf">zeros_like</span><span class="p">(</span><span class="n">rewards</span><span class="p">)</span>
@@ -115,11 +115,11 @@
                 <span class="n">next_val</span> <span class="o">=</span> <span class="n">next_value</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">next_val</span> <span class="o">=</span> <span class="n">values</span><span class="p">[</span><span class="n">step</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
-                
+
             <span class="n">delta</span> <span class="o">=</span> <span class="n">rewards</span><span class="p">[</span><span class="n">step</span><span class="p">]</span> <span class="o">+</span> <span class="n">self</span><span class="p">.</span><span class="n">gamma</span> <span class="o">*</span> <span class="n">next_val</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">dones</span><span class="p">[</span><span class="n">step</span><span class="p">])</span> <span class="o">-</span> <span class="n">values</span><span class="p">[</span><span class="n">step</span><span class="p">]</span>
             <span class="n">gae</span> <span class="o">=</span> <span class="n">delta</span> <span class="o">+</span> <span class="n">self</span><span class="p">.</span><span class="n">gamma</span> <span class="o">*</span> <span class="n">self</span><span class="p">.</span><span class="n">gae_lambda</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">dones</span><span class="p">[</span><span class="n">step</span><span class="p">])</span> <span class="o">*</span> <span class="n">gae</span>
             <span class="n">advantages</span><span class="p">[</span><span class="n">step</span><span class="p">]</span> <span class="o">=</span> <span class="n">gae</span>
-        
+
         <span class="n">returns</span> <span class="o">=</span> <span class="n">advantages</span> <span class="o">+</span> <span class="n">values</span>
         <span class="k">return</span> <span class="n">advantages</span><span class="p">,</span> <span class="n">returns</span>
 
@@ -168,12 +168,12 @@
                 <span class="n">nn</span><span class="p">.</span><span class="n">utils</span><span class="p">.</span><span class="nf">clip_grad_norm_</span><span class="p">(</span><span class="nf">list</span><span class="p">(</span><span class="n">self</span><span class="p">.</span><span class="n">actor</span><span class="p">.</span><span class="nf">parameters</span><span class="p">())</span> <span class="o">+</span> <span class="nf">list</span><span class="p">(</span><span class="n">self</span><span class="p">.</span><span class="n">critic</span><span class="p">.</span><span class="nf">parameters</span><span class="p">()),</span> <span class="mf">0.5</span><span class="p">)</span>
                 <span class="n">self</span><span class="p">.</span><span class="n">optimizer</span><span class="p">.</span><span class="nf">step</span><span class="p">()</span>
 </code></pre></div></div> <p>The make_atari_env() function below allows for the creation of vectorized Atari environments, with additional control of each individual environment in the vectorized environments when compared to the make_vec() function I used in the LunarLander environment.</p> <div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">make_atari_env</span><span class="p">(</span><span class="n">env_name</span><span class="p">,</span> <span class="n">num_envs</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">render_mode</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
-    
+
     <span class="k">def</span> <span class="nf">make_env</span><span class="p">(</span><span class="n">i</span><span class="p">):</span>
         <span class="k">def</span> <span class="nf">_init</span><span class="p">():</span>
             <span class="n">env</span> <span class="o">=</span> <span class="n">gym</span><span class="p">.</span><span class="nf">make</span><span class="p">(</span><span class="n">env_name</span><span class="p">,</span> <span class="n">frameskip</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">render_mode</span><span class="o">=</span><span class="n">render_mode</span><span class="p">)</span>
             <span class="n">env</span> <span class="o">=</span> <span class="n">gym</span><span class="p">.</span><span class="n">wrappers</span><span class="p">.</span><span class="nc">RecordVideo</span><span class="p">(</span><span class="n">env</span><span class="p">,</span> <span class="n">video_folder</span><span class="o">=</span><span class="sh">"</span><span class="s">videos</span><span class="sh">"</span><span class="p">,</span> <span class="n">episode_trigger</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">True</span><span class="p">,</span> <span class="n">name_prefix</span><span class="o">=</span><span class="sh">"</span><span class="s">ppo_pong_</span><span class="sh">"</span><span class="o">+</span> <span class="nf">str</span><span class="p">(</span><span class="n">i</span><span class="p">))</span> <span class="k">if</span> <span class="n">render_mode</span> <span class="o">==</span> <span class="sh">"</span><span class="s">rgb_array</span><span class="sh">"</span> <span class="k">else</span> <span class="n">env</span>
-            
+
             <span class="n">env</span> <span class="o">=</span> <span class="n">gym</span><span class="p">.</span><span class="n">wrappers</span><span class="p">.</span><span class="nc">AtariPreprocessing</span><span class="p">(</span>
                 <span class="n">env</span><span class="p">,</span>
                 <span class="n">noop_max</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span>
@@ -184,12 +184,12 @@
                 <span class="n">grayscale_newaxis</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
                 <span class="n">scale_obs</span><span class="o">=</span><span class="bp">True</span>
             <span class="p">)</span>
-            
+
             <span class="n">env</span> <span class="o">=</span> <span class="n">gym</span><span class="p">.</span><span class="n">wrappers</span><span class="p">.</span><span class="nc">FrameStack</span><span class="p">(</span><span class="n">env</span><span class="p">,</span> <span class="n">num_stack</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
-            
+
             <span class="k">return</span> <span class="n">env</span>
         <span class="k">return</span> <span class="n">_init</span>
-    
+
     <span class="n">envs</span> <span class="o">=</span> <span class="n">gym</span><span class="p">.</span><span class="n">vector</span><span class="p">.</span><span class="nc">SyncVectorEnv</span><span class="p">([</span><span class="nf">make_env</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nf">range</span><span class="p">(</span><span class="n">num_envs</span><span class="p">)])</span>
     <span class="k">return</span> <span class="n">envs</span>
 </code></pre></div></div> <p>The function below, run_ppo(), performs the entire training loop of PPO for a given continuous state and action space Gymnasium environment, from collecting the experiences for each batch, computing the advantages, and performing the update loop. Additionally, this will save the final and best performing actor network and critic network.</p> <div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">run_ppo_atari</span><span class="p">():</span>
@@ -212,7 +212,7 @@
     <span class="n">batch_size</span> <span class="o">=</span> <span class="mi">256</span>
     <span class="n">num_epochs</span> <span class="o">=</span> <span class="mi">4</span>
 
-    <span class="c1"># to load saved models that are either partially or fully trained    
+    <span class="c1"># to load saved models that are either partially or fully trained
 </span>    <span class="c1"># agent.actor.load_state_dict(torch.load("ppo_atari_training_actor.pth", map_location=device))
 </span>    <span class="c1"># agent.critic.load_state_dict(torch.load("ppo_atari_training_critic.pth", map_location=device))
 </span>
@@ -252,10 +252,10 @@
             <span class="n">next_value</span> <span class="o">=</span> <span class="n">agent</span><span class="p">.</span><span class="nf">critic</span><span class="p">(</span><span class="n">state</span><span class="p">).</span><span class="nf">squeeze</span><span class="p">()</span>
 
         <span class="n">advantages</span><span class="p">,</span> <span class="n">returns</span> <span class="o">=</span> <span class="n">agent</span><span class="p">.</span><span class="nf">compute_gae</span><span class="p">(</span><span class="n">rewards</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">dones</span><span class="p">,</span> <span class="n">next_value</span><span class="p">)</span>
-        
-        <span class="n">agent</span><span class="p">.</span><span class="nf">update</span><span class="p">(</span><span class="n">states</span><span class="p">,</span> <span class="n">actions</span><span class="p">,</span> <span class="n">log_probs</span><span class="p">,</span> <span class="n">returns</span><span class="p">,</span> <span class="n">advantages</span><span class="p">,</span> 
+
+        <span class="n">agent</span><span class="p">.</span><span class="nf">update</span><span class="p">(</span><span class="n">states</span><span class="p">,</span> <span class="n">actions</span><span class="p">,</span> <span class="n">log_probs</span><span class="p">,</span> <span class="n">returns</span><span class="p">,</span> <span class="n">advantages</span><span class="p">,</span>
                     <span class="n">epochs</span><span class="o">=</span><span class="n">num_epochs</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">entropy_coef</span><span class="o">=</span><span class="mf">0.01</span><span class="p">)</span>
-        
+
         <span class="n">avg_reward</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="nf">mean</span><span class="p">(</span><span class="n">episode_rewards</span><span class="p">[</span><span class="o">-</span><span class="mi">100</span><span class="p">:])</span> <span class="k">if</span> <span class="nf">len</span><span class="p">(</span><span class="n">episode_rewards</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">100</span> <span class="k">else</span> <span class="n">np</span><span class="p">.</span><span class="nf">mean</span><span class="p">(</span><span class="n">episode_rewards</span><span class="p">)</span>
         <span class="nf">if </span><span class="p">(</span><span class="n">update</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="mi">10</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="nf">print</span><span class="p">(</span><span class="sa">f</span><span class="sh">"</span><span class="s">Update </span><span class="si">{</span><span class="n">update</span> <span class="o">+</span> <span class="mi">1</span><span class="si">}</span><span class="s">/</span><span class="si">{</span><span class="n">num_updates</span><span class="si">}</span><span class="s">, Average Reward: </span><span class="si">{</span><span class="n">avg_reward</span><span class="si">:</span><span class="p">.</span><span class="mi">2</span><span class="n">f</span><span class="si">}</span><span class="s">, Episodes: </span><span class="si">{</span><span class="nf">len</span><span class="p">(</span><span class="n">episode_rewards</span><span class="p">)</span><span class="si">}</span><span class="s">, Total Timesteps: </span><span class="si">{</span><span class="p">(</span><span class="n">update</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">steps_per_rollout</span><span class="si">}</span><span class="sh">"</span><span class="p">)</span>
@@ -278,12 +278,12 @@
 
     <span class="n">state</span><span class="p">,</span> <span class="n">info</span> <span class="o">=</span> <span class="n">envs</span><span class="p">.</span><span class="nf">reset</span><span class="p">()</span>
     <span class="n">state</span> <span class="o">=</span> <span class="n">torch</span><span class="p">.</span><span class="nc">FloatTensor</span><span class="p">(</span><span class="n">np</span><span class="p">.</span><span class="nf">array</span><span class="p">(</span><span class="n">state</span><span class="p">)).</span><span class="nf">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
-    
-    <span class="c1"># To load saved models that are either partially or fully trained   
+
+    <span class="c1"># To load saved models that are either partially or fully trained
 </span>    <span class="n">agent</span><span class="p">.</span><span class="n">actor</span><span class="p">.</span><span class="nf">load_state_dict</span><span class="p">(</span><span class="n">torch</span><span class="p">.</span><span class="nf">load</span><span class="p">(</span><span class="sh">"</span><span class="s">ppo_atari_training_actor.pth</span><span class="sh">"</span><span class="p">,</span> <span class="n">map_location</span><span class="o">=</span><span class="n">device</span><span class="p">))</span>
     <span class="n">agent</span><span class="p">.</span><span class="n">critic</span><span class="p">.</span><span class="nf">load_state_dict</span><span class="p">(</span><span class="n">torch</span><span class="p">.</span><span class="nf">load</span><span class="p">(</span><span class="sh">"</span><span class="s">ppo_atari_training_critic.pth</span><span class="sh">"</span><span class="p">,</span> <span class="n">map_location</span><span class="o">=</span><span class="n">device</span><span class="p">))</span>
 
-    
+
     <span class="k">for</span> <span class="n">ep</span> <span class="ow">in</span> <span class="nf">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
         <span class="n">current_episode_rewards</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="nf">zeros</span><span class="p">(</span><span class="n">num_envs</span><span class="p">)</span>
         <span class="n">done</span> <span class="o">=</span> <span class="bp">False</span>
@@ -299,7 +299,7 @@
             <span class="n">state</span> <span class="o">=</span> <span class="n">torch</span><span class="p">.</span><span class="nc">FloatTensor</span><span class="p">(</span><span class="n">np</span><span class="p">.</span><span class="nf">array</span><span class="p">(</span><span class="n">next_state</span><span class="p">)).</span><span class="nf">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
 
             <span class="c1"># time.sleep(0.1)
-</span>        
+</span>
         <span class="nf">print</span><span class="p">(</span><span class="n">current_episode_rewards</span><span class="p">)</span>
 
     <span class="n">envs</span><span class="p">.</span><span class="nf">close</span><span class="p">()</span>

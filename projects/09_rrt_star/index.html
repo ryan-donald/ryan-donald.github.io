@@ -27,12 +27,12 @@
     <span class="k">def</span> <span class="nf">generate_random_node</span><span class="p">(</span><span class="n">self</span><span class="p">):</span>
         <span class="c1"># generate a random node within the map
 </span>        <span class="k">return</span> <span class="nc">Node</span><span class="p">(</span><span class="n">np</span><span class="p">.</span><span class="n">random</span><span class="p">.</span><span class="nf">uniform</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">self</span><span class="p">.</span><span class="n">world_size</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">2</span><span class="p">))</span>
-    
+
     <span class="k">def</span> <span class="nf">steer</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="n">from_node</span><span class="p">,</span> <span class="n">to_node</span><span class="p">):</span>
         <span class="c1"># calculate angle between from_node and to_node
 </span>        <span class="n">theta</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="nf">arctan2</span><span class="p">(</span><span class="n">to_node</span><span class="p">.</span><span class="n">position</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">from_node</span><span class="p">.</span><span class="n">position</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
                            <span class="n">to_node</span><span class="p">.</span><span class="n">position</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">from_node</span><span class="p">.</span><span class="n">position</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-        
+
         <span class="c1"># clip distance to step_size
 </span>        <span class="k">if</span> <span class="n">np</span><span class="p">.</span><span class="n">linalg</span><span class="p">.</span><span class="nf">norm</span><span class="p">(</span><span class="n">to_node</span><span class="p">.</span><span class="n">position</span> <span class="o">-</span> <span class="n">from_node</span><span class="p">.</span><span class="n">position</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">self</span><span class="p">.</span><span class="n">step_size</span><span class="p">:</span>
             <span class="n">new_position</span> <span class="o">=</span> <span class="n">to_node</span><span class="p">.</span><span class="n">position</span>
@@ -44,13 +44,13 @@
         <span class="n">new_node</span><span class="p">.</span><span class="n">cost</span> <span class="o">=</span> <span class="n">from_node</span><span class="p">.</span><span class="n">cost</span> <span class="o">+</span> <span class="n">np</span><span class="p">.</span><span class="n">linalg</span><span class="p">.</span><span class="nf">norm</span><span class="p">(</span><span class="n">new_position</span> <span class="o">-</span> <span class="n">from_node</span><span class="p">.</span><span class="n">position</span><span class="p">)</span>
         <span class="n">new_node</span><span class="p">.</span><span class="n">parent</span> <span class="o">=</span> <span class="n">from_node</span>
         <span class="k">return</span> <span class="n">new_node</span>
-    
+
     <span class="k">def</span> <span class="nf">nearest_node</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>
         <span class="c1"># find the nearest node in the map to a given node
 </span>        <span class="n">dlist</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="p">.</span><span class="n">linalg</span><span class="p">.</span><span class="nf">norm</span><span class="p">(</span><span class="n">n</span><span class="p">.</span><span class="n">position</span> <span class="o">-</span> <span class="n">node</span><span class="p">.</span><span class="n">position</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">self</span><span class="p">.</span><span class="n">node_list</span><span class="p">]</span>
         <span class="n">min_index</span> <span class="o">=</span> <span class="n">dlist</span><span class="p">.</span><span class="nf">index</span><span class="p">(</span><span class="nf">min</span><span class="p">(</span><span class="n">dlist</span><span class="p">))</span>
         <span class="k">return</span> <span class="n">self</span><span class="p">.</span><span class="n">node_list</span><span class="p">[</span><span class="n">min_index</span><span class="p">]</span>
-    
+
     <span class="k">def</span> <span class="nf">find_nearby_nodes</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="n">new_node</span><span class="p">,</span> <span class="n">radius</span><span class="p">):</span>
         <span class="c1"># find nearby nodes in the map to new_node within a specified radius
 </span>        <span class="n">nearby_nodes</span> <span class="o">=</span> <span class="p">[]</span>
@@ -58,12 +58,12 @@
             <span class="k">if</span> <span class="n">np</span><span class="p">.</span><span class="n">linalg</span><span class="p">.</span><span class="nf">norm</span><span class="p">(</span><span class="n">node</span><span class="p">.</span><span class="n">position</span> <span class="o">-</span> <span class="n">new_node</span><span class="p">.</span><span class="n">position</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">radius</span><span class="p">:</span>
                 <span class="n">nearby_nodes</span><span class="p">.</span><span class="nf">append</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">nearby_nodes</span>
-    
+
     <span class="k">def</span> <span class="nf">choose_parent</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="n">new_node</span><span class="p">,</span> <span class="n">nearby_nodes</span><span class="p">):</span>
         <span class="c1"># choose the best parent for new_node from nearby_nodes based on cost
 </span>        <span class="k">if</span> <span class="ow">not</span> <span class="n">nearby_nodes</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">new_node</span>
-        
+
         <span class="c1"># check collision before considering this node as a parent
 </span>        <span class="n">costs</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">valid_nodes</span> <span class="o">=</span> <span class="p">[]</span>
@@ -72,7 +72,7 @@
                 <span class="n">cost</span> <span class="o">=</span> <span class="n">node</span><span class="p">.</span><span class="n">cost</span> <span class="o">+</span> <span class="n">np</span><span class="p">.</span><span class="n">linalg</span><span class="p">.</span><span class="nf">norm</span><span class="p">(</span><span class="n">node</span><span class="p">.</span><span class="n">position</span> <span class="o">-</span> <span class="n">new_node</span><span class="p">.</span><span class="n">position</span><span class="p">)</span>
                 <span class="n">costs</span><span class="p">.</span><span class="nf">append</span><span class="p">(</span><span class="n">cost</span><span class="p">)</span>
                 <span class="n">valid_nodes</span><span class="p">.</span><span class="nf">append</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
-        
+
         <span class="k">if</span> <span class="ow">not</span> <span class="n">valid_nodes</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">new_node</span>
 
@@ -82,7 +82,7 @@
         <span class="n">new_node</span><span class="p">.</span><span class="n">parent</span> <span class="o">=</span> <span class="n">best_parent</span>
         <span class="n">new_node</span><span class="p">.</span><span class="n">cost</span> <span class="o">=</span> <span class="n">costs</span><span class="p">[</span><span class="n">min_cost_index</span><span class="p">]</span>
         <span class="k">return</span> <span class="n">new_node</span>
-    
+
     <span class="k">def</span> <span class="nf">rewire</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="n">new_node</span><span class="p">,</span> <span class="n">nearby_nodes</span><span class="p">):</span>
 
         <span class="c1"># check all nearby_nodes to see if we can decrease their cost by rewiring through new_node
@@ -94,7 +94,7 @@
 
                 <span class="c1"># update costs of all descendants
 </span>                <span class="n">self</span><span class="p">.</span><span class="nf">update_descendants_cost</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
-    
+
     <span class="k">def</span> <span class="nf">update_descendants_cost</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>
         <span class="c1"># update costs of all descendants of the given node
 </span>        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">self</span><span class="p">.</span><span class="n">node_list</span><span class="p">:</span>
@@ -133,9 +133,9 @@
         <span class="n">rand_node</span> <span class="o">=</span> <span class="n">rrt_star</span><span class="p">.</span><span class="nf">generate_random_node</span><span class="p">()</span>
         <span class="n">nearest_node</span> <span class="o">=</span> <span class="n">rrt_star</span><span class="p">.</span><span class="nf">nearest_node</span><span class="p">(</span><span class="n">rand_node</span><span class="p">)</span>
         <span class="n">new_node</span> <span class="o">=</span> <span class="n">rrt_star</span><span class="p">.</span><span class="nf">steer</span><span class="p">(</span><span class="n">nearest_node</span><span class="p">,</span> <span class="n">rand_node</span><span class="p">)</span>
-        
+
         <span class="k">if</span> <span class="n">rrt_star</span><span class="p">.</span><span class="nf">check_collision</span><span class="p">(</span><span class="n">nearest_node</span><span class="p">,</span> <span class="n">new_node</span><span class="p">):</span>
-            <span class="k">continue</span> 
+            <span class="k">continue</span>
         <span class="n">nearby_nodes</span> <span class="o">=</span> <span class="n">rrt_star</span><span class="p">.</span><span class="nf">find_nearby_nodes</span><span class="p">(</span><span class="n">new_node</span><span class="p">,</span> <span class="n">radius</span><span class="o">=</span><span class="mf">2.0</span><span class="p">)</span>
         <span class="n">new_node</span> <span class="o">=</span> <span class="n">rrt_star</span><span class="p">.</span><span class="nf">choose_parent</span><span class="p">(</span><span class="n">new_node</span><span class="p">,</span> <span class="n">nearby_nodes</span><span class="p">)</span>
         <span class="n">rrt_star</span><span class="p">.</span><span class="nf">rewire</span><span class="p">(</span><span class="n">new_node</span><span class="p">,</span> <span class="n">nearby_nodes</span><span class="p">)</span>
@@ -185,7 +185,7 @@
         <span class="n">path</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="nf">array</span><span class="p">(</span><span class="n">path</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
         <span class="n">ax</span><span class="p">.</span><span class="nf">plot</span><span class="p">(</span><span class="n">path</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span> <span class="n">path</span><span class="p">[:,</span><span class="mi">1</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="sh">'</span><span class="s">magenta</span><span class="sh">'</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sh">'</span><span class="s">Path</span><span class="sh">'</span><span class="p">)</span>
         <span class="n">ax</span><span class="p">.</span><span class="nf">legend</span><span class="p">()</span>
-    
+
     <span class="n">plt</span><span class="p">.</span><span class="nf">savefig</span><span class="p">(</span><span class="sh">'</span><span class="s">rrt_star_progress</span><span class="sh">'</span> <span class="o">+</span> <span class="nf">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">+</span> <span class="sh">'</span><span class="s">.png</span><span class="sh">'</span><span class="p">)</span>
 </code></pre></div></div> <p>Below is the initialization of the RRT* class, matplotlib plot, and the function call to begin and animate the RRT* algorithm.</p> <div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">start</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="nf">array</span><span class="p">([</span><span class="mi">5</span><span class="p">,</span><span class="mi">5</span><span class="p">])</span>
 <span class="n">goal</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="nf">array</span><span class="p">([</span><span class="mi">17</span><span class="p">,</span><span class="mi">17</span><span class="p">])</span>
@@ -293,7 +293,7 @@
 </span>        <span class="n">dlist</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="p">.</span><span class="n">linalg</span><span class="p">.</span><span class="nf">norm</span><span class="p">(</span><span class="n">n</span><span class="p">.</span><span class="n">pose</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">node</span><span class="p">.</span><span class="n">pose</span><span class="p">[:</span><span class="mi">2</span><span class="p">])</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">self</span><span class="p">.</span><span class="n">node_list</span><span class="p">]</span>
         <span class="n">min_index</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="nf">argmin</span><span class="p">(</span><span class="n">dlist</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">self</span><span class="p">.</span><span class="n">node_list</span><span class="p">[</span><span class="n">min_index</span><span class="p">]</span>
-    
+
     <span class="k">def</span> <span class="nf">find_nearby_nodes</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="n">new_node</span><span class="p">,</span> <span class="n">radius</span><span class="p">):</span>
         <span class="c1"># find nearby nodes in the map to new_node within a specified radius
 </span>        <span class="n">nearby_nodes</span> <span class="o">=</span> <span class="p">[]</span>
@@ -302,17 +302,17 @@
             <span class="k">if</span> <span class="n">dist</span> <span class="o">&lt;=</span> <span class="n">radius</span><span class="p">:</span>
                 <span class="n">nearby_nodes</span><span class="p">.</span><span class="nf">append</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">nearby_nodes</span>
-    
+
     <span class="k">def</span> <span class="nf">choose_parent</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="n">new_node</span><span class="p">,</span> <span class="n">nearby_nodes</span><span class="p">):</span>
         <span class="c1"># choose the best parent for new_node from nearby_nodes based on cost
 </span>        <span class="k">if</span> <span class="ow">not</span> <span class="n">nearby_nodes</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">new_node</span>
-        
+
         <span class="c1"># check collision before considering this node as a parent
 </span>        <span class="n">min_cost</span> <span class="o">=</span> <span class="nf">float</span><span class="p">(</span><span class="sh">'</span><span class="s">inf</span><span class="sh">'</span><span class="p">)</span>
         <span class="n">best_parent</span> <span class="o">=</span> <span class="bp">None</span>
         <span class="n">best_traj</span> <span class="o">=</span> <span class="bp">None</span>
-        
+
         <span class="c1"># for each nearby node, simulate a trajectory to new_node and compute the cost
 </span>        <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">nearby_nodes</span><span class="p">:</span>
             <span class="n">traj</span> <span class="o">=</span> <span class="n">self</span><span class="p">.</span><span class="nf">steer</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">new_node</span><span class="p">)</span>
@@ -348,7 +348,7 @@
             <span class="c1"># skip if nearby_node is the parent of new_node or is the start node
 </span>            <span class="k">if</span> <span class="n">nearby_node</span> <span class="o">==</span> <span class="n">new_node</span><span class="p">.</span><span class="n">parent</span> <span class="ow">or</span> <span class="n">nearby_node</span> <span class="o">==</span> <span class="n">self</span><span class="p">.</span><span class="n">start</span><span class="p">:</span>
                 <span class="k">continue</span>
-            
+
             <span class="c1"># steer from new_node to nearby_node, check if new_node is a better parent for any nearby node
 </span>            <span class="n">traj</span> <span class="o">=</span> <span class="n">self</span><span class="p">.</span><span class="nf">steer</span><span class="p">(</span><span class="n">new_node</span><span class="p">,</span> <span class="n">nearby_node</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">traj</span> <span class="ow">and</span> <span class="nf">len</span><span class="p">(</span><span class="n">traj</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">self</span><span class="p">.</span><span class="nf">check_collision</span><span class="p">(</span><span class="n">traj</span><span class="p">):</span>
@@ -358,7 +358,7 @@
                 <span class="n">target</span> <span class="o">=</span> <span class="n">nearby_node</span><span class="p">.</span><span class="n">pose</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
                 <span class="k">if</span> <span class="n">np</span><span class="p">.</span><span class="n">linalg</span><span class="p">.</span><span class="nf">norm</span><span class="p">(</span><span class="n">endpoint</span> <span class="o">-</span> <span class="n">target</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">self</span><span class="p">.</span><span class="n">threshold</span><span class="p">:</span>
                     <span class="k">continue</span>
-                
+
                 <span class="c1"># compute the cost of this trajectory, and if it's better, rewire nearby_node
 </span>                <span class="n">cost</span> <span class="o">=</span> <span class="n">nearby_node</span><span class="p">.</span><span class="n">cost</span> <span class="o">+</span> <span class="n">self</span><span class="p">.</span><span class="nf">trajectory_cost</span><span class="p">(</span><span class="n">traj</span><span class="p">)</span>
                 <span class="k">if</span> <span class="n">cost</span> <span class="o">&lt;</span> <span class="n">nearby_node</span><span class="p">.</span><span class="n">cost</span><span class="p">:</span>
@@ -368,12 +368,12 @@
                     <span class="n">self</span><span class="p">.</span><span class="nf">update_descendants_cost</span><span class="p">(</span><span class="n">nearby_node</span><span class="p">)</span>
 
         <span class="k">return</span>
-    
+
     <span class="k">def</span> <span class="nf">update_descendants_cost</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="n">curr_node</span><span class="p">):</span>
         <span class="c1"># update costs of all descendants of the given node
 </span>        <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">self</span><span class="p">.</span><span class="n">node_list</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">node</span><span class="p">.</span><span class="n">parent</span> <span class="o">==</span> <span class="n">curr_node</span><span class="p">:</span>
-                
+
                 <span class="n">traj</span> <span class="o">=</span> <span class="n">node</span><span class="p">.</span><span class="n">trajectory</span>
                 <span class="k">if</span> <span class="n">traj</span> <span class="ow">and</span> <span class="nf">len</span><span class="p">(</span><span class="n">traj</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
                     <span class="n">node</span><span class="p">.</span><span class="n">cost</span> <span class="o">=</span> <span class="n">curr_node</span><span class="p">.</span><span class="n">cost</span> <span class="o">+</span> <span class="n">self</span><span class="p">.</span><span class="nf">trajectory_cost</span><span class="p">(</span><span class="n">traj</span><span class="p">)</span>
@@ -387,7 +387,7 @@
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">np</span><span class="p">.</span><span class="nf">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nf">len</span><span class="p">(</span><span class="n">trajectory</span><span class="p">)):</span>
             <span class="n">cost</span> <span class="o">+=</span> <span class="n">np</span><span class="p">.</span><span class="n">linalg</span><span class="p">.</span><span class="nf">norm</span><span class="p">(</span><span class="n">trajectory</span><span class="p">[</span><span class="n">i</span><span class="p">][:</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">trajectory</span><span class="p">[</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">][:</span><span class="mi">2</span><span class="p">])</span>
         <span class="k">return</span> <span class="n">cost</span>
-    
+
     <span class="k">def</span> <span class="nf">check_collision</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="n">trajectory</span><span class="p">):</span>
         <span class="c1"># check if any part of the trajectory collides with any obstacles
 </span>        <span class="k">for</span> <span class="n">obs</span> <span class="ow">in</span> <span class="n">self</span><span class="p">.</span><span class="n">obstacles</span><span class="p">:</span>
@@ -408,7 +408,7 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">path</span><span class="p">.</span><span class="nf">append</span><span class="p">(</span><span class="n">node</span><span class="p">.</span><span class="n">pose</span><span class="p">)</span>
             <span class="n">node</span> <span class="o">=</span> <span class="n">node</span><span class="p">.</span><span class="n">parent</span>
-        
+
         <span class="n">path</span><span class="p">.</span><span class="nf">reverse</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">path</span>
 </code></pre></div></div> <p>The <em>animate()</em> function performs the same task as in the default RRT* implementation, calling each function to implement the RRT* with robot dynamics, as well as plotting the growth of the algorithm.</p> <div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">animate</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">rrt_star</span><span class="p">,</span> <span class="n">ax</span><span class="p">,</span> <span class="n">save_counter</span><span class="p">):</span>
@@ -478,7 +478,7 @@
 </span>    <span class="n">pts</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="nf">array</span><span class="p">([</span><span class="n">n</span><span class="p">.</span><span class="n">pose</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">rrt_star</span><span class="p">.</span><span class="n">node_list</span><span class="p">])</span>
     <span class="k">if</span> <span class="n">pts</span><span class="p">.</span><span class="n">size</span><span class="p">:</span>
         <span class="n">ax</span><span class="p">.</span><span class="nf">scatter</span><span class="p">(</span><span class="n">pts</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span> <span class="n">pts</span><span class="p">[:,</span><span class="mi">1</span><span class="p">],</span> <span class="n">c</span><span class="o">=</span><span class="sh">'</span><span class="s">black</span><span class="sh">'</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">zorder</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-    
+
     <span class="c1"># draw start and goal
 </span>    <span class="n">ax</span><span class="p">.</span><span class="nf">scatter</span><span class="p">(</span><span class="n">rrt_star</span><span class="p">.</span><span class="n">start</span><span class="p">.</span><span class="n">pose</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">rrt_star</span><span class="p">.</span><span class="n">start</span><span class="p">.</span><span class="n">pose</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">c</span><span class="o">=</span><span class="sh">'</span><span class="s">green</span><span class="sh">'</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sh">'</span><span class="s">Start</span><span class="sh">'</span><span class="p">,</span> <span class="n">zorder</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
     <span class="n">ax</span><span class="p">.</span><span class="nf">scatter</span><span class="p">(</span><span class="n">rrt_star</span><span class="p">.</span><span class="n">goal</span><span class="p">.</span><span class="n">pose</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">rrt_star</span><span class="p">.</span><span class="n">goal</span><span class="p">.</span><span class="n">pose</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">c</span><span class="o">=</span><span class="sh">'</span><span class="s">red</span><span class="sh">'</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sh">'</span><span class="s">Goal</span><span class="sh">'</span><span class="p">,</span> <span class="n">zorder</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
@@ -506,9 +506,9 @@
 <span class="p">]</span>
 
 <span class="c1"># Create and run RRT*
-</span><span class="n">rrt_star</span> <span class="o">=</span> <span class="nc">RRTStarDynamics</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">goal</span><span class="p">,</span> <span class="n">world_size</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> 
-                                <span class="n">obstacles</span><span class="o">=</span><span class="n">obstacles</span><span class="p">,</span> 
-                                <span class="n">step_size</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> 
+</span><span class="n">rrt_star</span> <span class="o">=</span> <span class="nc">RRTStarDynamics</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">goal</span><span class="p">,</span> <span class="n">world_size</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+                                <span class="n">obstacles</span><span class="o">=</span><span class="n">obstacles</span><span class="p">,</span>
+                                <span class="n">step_size</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
                                 <span class="n">max_iter</span><span class="o">=</span><span class="mi">5000</span><span class="p">)</span>
 
 <span class="c1"># Animate the planning process
