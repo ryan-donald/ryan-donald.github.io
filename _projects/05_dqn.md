@@ -7,12 +7,11 @@ importance: 5
 category: Reinforcement Learning
 ---
 
-This notebook contains my implementation of a Deep-Q Network, tested within the Cart Pole Gymnasium environment.  
-  
-This environment can be found here: https://gymnasium.farama.org/environments/classic_control/cart_pole/  
-  
-In this environment, the robot is tasked with balancing a pole attached at one end to a cart, which is on a frictionless track. Each time step the robot has the option to apply a fixed force to the cart in either the left or right hand direction. These are the only two options, and the robot must choose one each timestep. If the cart exits the arena on either the left or right hand side, or the angle between the pole and the vertical axes exceeds a set value, the episode will terminate. Within this implementation, each timestep the robot receives a reward of +1.
+This notebook contains my implementation of a Deep-Q Network, tested within the Cart Pole Gymnasium environment.
 
+This environment can be found here: https://gymnasium.farama.org/environments/classic_control/cart_pole/
+
+In this environment, the robot is tasked with balancing a pole attached at one end to a cart, which is on a frictionless track. Each time step the robot has the option to apply a fixed force to the cart in either the left or right hand direction. These are the only two options, and the robot must choose one each timestep. If the cart exits the arena on either the left or right hand side, or the angle between the pole and the vertical axes exceeds a set value, the episode will terminate. Within this implementation, each timestep the robot receives a reward of +1.
 
 ## Result
 
@@ -39,7 +38,6 @@ from tensorflow.keras.optimizers import Adam
 
 Parameters for the Neural Networks, Experience Buffer, and Learning algorithm.
 
-
 ```python
 MEMORY_SIZE = 50_000
 STEPS_PER_UPDATE = 4
@@ -53,7 +51,6 @@ decay = 0.995
 ```
 
 Testing the environment, observation shape, state shape, and number of actions.
-
 
 ```python
 env = gym.make("CartPole-v1")
@@ -88,15 +85,13 @@ print(f"Info: {info}")
     Truncated: False
     Info: {}
 
+Feed forward neural networks in the following form:
 
-Feed forward neural networks in the following form: 
-   * State space as input layer  
-   * Dense layer of size 64, ReLU activation  
-   * Output layer of size actions, linear activation  
-  
+- State space as input layer
+- Dense layer of size 64, ReLU activation
+- Output layer of size actions, linear activation
 
 There are two neural networks, as shown in "Implementing the Deep-Q Network", where one is older and used to calculate the Q-Value for the next state.
-
 
 ```python
 inputs = Input(shape=(state_shape))
@@ -117,7 +112,6 @@ optimizer = Adam(learning_rate=ALPHA)
 
 Named tuple for easier tracking and storage of each time-step in the experience buffer. This allows us to index each value as "experience.state" instead of using direct indexes such as "experience[0]", for easier code readability later on.
 
-
 ```python
 experience = namedtuple("Experience", field_names=["state", "action", "reward", "next_state", "terminal_state"])
 ```
@@ -126,26 +120,25 @@ According to: https://www.tensorflow.org/agents/tutorials/0_intro_rl
 
 Loss for DQN is:
 
-* $L_i (\theta_i) = E_{s,a,r,s'~p(.)} [(y_i - Q(s,a,theta_i))^2]$ 
+- $L_i (\theta_i) = E_{s,a,r,s'~p(.)} [(y_i - Q(s,a,theta_i))^2]$
 
-* $y_i = r + \gamma max_{a'} Q(s', a', theta_{i-1})$
+- $y_i = r + \gamma max_{a'} Q(s', a', theta_{i-1})$
 
 mini-batch replay is used for experience replay. $x$ transitions are placed into a buffer, then all of these transitions are used to compute loss and gradient
-
 
 ```python
 def loss_values(experiences, gamma, q_network, q_hat_network):
     # Unpack the replay buffer
-    states, actions, rewards, next_states, terminal_states = experiences 
-    
+    states, actions, rewards, next_states, terminal_states = experiences
+
     # Calculate the max Q-value for each state in next_states
     max_qsa = tf.reduce_max(q_hat_network(next_states), axis=-1)
 
     # Calculate the TD target, terminal_states stores if end of episode.
     # y_i = R if episode terminates next step.
-    # y_i = R + gamma * max_a' Q(s', a') otherwise 
+    # y_i = R + gamma * max_a' Q(s', a') otherwise
 
-    y_targets = rewards + (1 - terminal_states)*gamma*max_qsa 
+    y_targets = rewards + (1 - terminal_states)*gamma*max_qsa
 
     # Get the Q-values for the current states
     q_values = q_network(states)
@@ -153,19 +146,18 @@ def loss_values(experiences, gamma, q_network, q_hat_network):
     # Find the Q_Values for each state
     q_values = tf.gather_nd(q_values, tf.stack([tf.range(q_values.shape[0]),
                                                 tf.cast(actions, tf.int32)], axis=1))
-    
+
     # Loss is the mean-squared error of the TD-Error. TD-Error is the TD target minus the current Q-Value
     loss = MSE(y_targets, q_values)
 
     return loss
 ```
 
-Function that updates $\hat{Q}$ with a soft update from Deep Deterministic Policy Gradient. Equation is found below:  
-  
-* $\theta^{\hat{Q}} = \tau\theta^{Q} + (1 - \tau)\theta^{\hat{Q}}$  
-  
-with $\tau << 1$
+Function that updates $\hat{Q}$ with a soft update from Deep Deterministic Policy Gradient. Equation is found below:
 
+- $\theta^{\hat{Q}} = \tau\theta^{Q} + (1 - \tau)\theta^{\hat{Q}}$
+
+with $\tau << 1$
 
 ```python
 def update_q_hat(q_network, q_hat_network):
@@ -174,8 +166,7 @@ def update_q_hat(q_network, q_hat_network):
         q_hat_weights.assign(TAU * q_weights + (1 - TAU) * q_hat_weights)
 ```
 
-Functions which performs the gradient descent used for learning new weights within the Q network. 
-
+Functions which performs the gradient descent used for learning new weights within the Q network.
 
 ```python
 @tf.function
@@ -191,7 +182,7 @@ def learn(experiences, gamma):
         # Update the weights of the q_network
         optimizer.apply_gradients(zip(gradients, q_network.trainable_variables))
 
-        # Update the target_q_network weights based upon q_network weights and TAU value. 
+        # Update the target_q_network weights based upon q_network weights and TAU value.
         # Known as a "soft update". used in Deep Deterministic Policy Gradient
         # This allows the target network to slowly track the learned network, increasing stability
 
@@ -199,7 +190,6 @@ def learn(experiences, gamma):
 ```
 
 Calculates the action based upon a given set of Q values and an $\epsilon$ value in an $\epsilon$-greedy policy.
-
 
 ```python
 def action(q_values, epsilon):
@@ -211,7 +201,6 @@ def action(q_values, epsilon):
 ```
 
 Randomly samples a input experience data set of $BATCH\_SIZE$ experiences from the experience buffer, which is then input into the above $learn()$ function
-
 
 ```python
 def get_batch(experiences):
@@ -237,7 +226,6 @@ def get_batch(experiences):
 ```
 
 The code below runs the model on a set number of episodes, $num\_episodes$
-
 
 ```python
 num_episodes = 2000
@@ -286,11 +274,11 @@ for episode in np.arange(num_episodes):
         # End the current episode if the environment terminated or ran out of time
         if terminated or truncated:
             break
-    
+
     # Decay epsilon until 0.1
     if epsilon > 0.1:
         epsilon = np.maximum(epsilon*decay, 0.1)
-    
+
     # Track episode rewards
     episode_rewards.append(total_r)
 
@@ -313,9 +301,7 @@ env.close()
     Episode 200, Reward: 48.0, Last 100 Average: 28.16
     Solved with 226.06 reward in 293 episodes!
 
-
 The code below simply runs the environment based upon the learned Q-Values. The performance of this should be equal or better than the training runs above, as we are removing the randomness in the action choice from the $\epsilon$-greedy policy.
-
 
 ```python
 env = gym.make("CartPole-v1", render_mode='human')
@@ -335,17 +321,16 @@ for episode in np.arange(2):
         s_prime, r, terminated, truncated, info = env.step(a)
 
         total_r += r
-        
+
         s = s_prime.copy()
 
         if terminated or truncated:
             break
-        
+
 env.close()
 ```
 
 Below the results over the training are shown.
-
 
 ```python
 window = 20
@@ -361,8 +346,4 @@ plt.legend()
 plt.show()
 ```
 
-
-    
 ![png]({{ site.baseurl }}/assets/img/Deep-Q-Network_25_0.png)
-    
-

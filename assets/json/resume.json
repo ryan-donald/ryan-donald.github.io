@@ -31,8 +31,7 @@
       "startDate": "2026-08-31",
       "endDate": "Present",
       "summary": "Member of on-board vehicle tracking team.",
-      "highlights": [
-      ]
+      "highlights": []
     },
     {
       "name": "Draper",
@@ -121,14 +120,7 @@
     },
     {
       "name": "Robotics",
-      "keywords": [
-        "Computer Vision",
-        "Manipulation",
-        "Path Planning",
-        "Localization",
-        "Reinforcement Learning",
-        "ROS / ROS2"
-      ]
+      "keywords": ["Computer Vision", "Manipulation", "Path Planning", "Localization", "Reinforcement Learning", "ROS / ROS2"]
     },
     {
       "name": "Tools",

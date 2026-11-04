@@ -7,12 +7,11 @@ importance: 3
 category: Robotics
 ---
 
-
 I spent time investigating and researching the differences between RRT (Rapidly Exploring Random Tree), an algorithm I learned during an undergraduate robotics course which I also ended up as a Grader for, and a more improved solution intended to find better solutions, RRT\* (Rapidly Exploring Random Tree Star). I vaguely knew that RRT* tended to result in better solutions, and that it was a more common path planning algorithm in robotics, but I did not know the details.
 
 In my research, I found that the two algorithms are very similar, with two key differences. The first of these is the largest, in that after sampling a new point and steering that point to the closest point, RRT* then rewires the tree by checking the local nodes, to see if any existing paths can be optimized by traversing through the new node. After a large number of samples, this allows the tree to tend towards the shortest straight line path from the start to any node. Second, typically in RRT once you find a path to the goal, you stop sampling as it is unlikely your path will get much better. In RRT*, due to the rewiring, after finding a path to the goal, you continue sampling as with more samples, the closer your path gets to the optimal path to the goal.
 
-Lastly, although theoretically this is the best straight line path, due to the shape and location of obstacles it is possible for this path to perform poorly with robots, as the path may not be smooth or physically possible due to the vehicle dynamics. This is why I also implemented RRT\* with vehicle dynamics. Typically this is known as kinodynamic planning, which simply means we are involving the dynamics of the vehicle in the path planning as well. The main difference in this from typical RRT\* is that the algorithm maintains a pose with each node as well, and to steer points, it randomly samples a number of forward and angular velocities within the bounds of the robot, and simulates that movement, and then chooses the commands which are closest to the sampled point. 
+Lastly, although theoretically this is the best straight line path, due to the shape and location of obstacles it is possible for this path to perform poorly with robots, as the path may not be smooth or physically possible due to the vehicle dynamics. This is why I also implemented RRT\* with vehicle dynamics. Typically this is known as kinodynamic planning, which simply means we are involving the dynamics of the vehicle in the path planning as well. The main difference in this from typical RRT\* is that the algorithm maintains a pose with each node as well, and to steer points, it randomly samples a number of forward and angular velocities within the bounds of the robot, and simulates that movement, and then chooses the commands which are closest to the sampled point.
 
 ## Results
 
@@ -26,8 +25,7 @@ Both animations show the tree growing over 5,000 samples. Note that the path (ma
 
 ## Implementation
 
-Below, I show two jupyter notebook files where I first implemented RRT\*, and then in the second I implement RRT\* with differential drive robot dynamics. 
-
+Below, I show two jupyter notebook files where I first implemented RRT\*, and then in the second I implement RRT\* with differential drive robot dynamics.
 
 ```python
 %matplotlib widget
@@ -36,11 +34,11 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 ```
 
-Below is the Node class, which is a simple data structure to represent each node in the RRT\* tree, with the following member variables:  
-- *position*, x,y position pair  
-- *parent*, Node object represnting the parent Node in the RRT* tree
-- *cost*, Distance along the tree from the start Node to this Node
+Below is the Node class, which is a simple data structure to represent each node in the RRT\* tree, with the following member variables:
 
+- _position_, x,y position pair
+- _parent_, Node object represnting the parent Node in the RRT* tree
+- _cost_, Distance along the tree from the start Node to this Node
 
 ```python
 class Node:
@@ -51,8 +49,6 @@ class Node:
 ```
 
 Below is the RRTStar class, which implements the RRT* algorithm. Within this class, there are various member variables and functions defined. This algorithm randomly samples points within a map, creating a tree for path planning in the map. If nodes are further away than a maximum distance, they will be moved closer to the node directly along a line connecting the sampled node and the nearest node. If this path is interrupted by an object, the node will not be added. The specific improvement of RRT* is that the parent of the new node is determined by checking the cost of each nearby node and choosing the parent which will result in the minimum cost. After this, it checks if any of the nearby nodes will benefit from having the new node as its parent node. Additionally, RRT* will continue sampling and updating the tree after a solution is found, converging towards an optimal path, unlike RRT which stops once a path is found.
-
-
 
 ```python
 class RRTStar:
@@ -69,12 +65,12 @@ class RRTStar:
     def generate_random_node(self):
         # generate a random node within the map
         return Node(np.random.uniform(0, self.world_size, size=2))
-    
+
     def steer(self, from_node, to_node):
         # calculate angle between from_node and to_node
         theta = np.arctan2(to_node.position[1] - from_node.position[1],
                            to_node.position[0] - from_node.position[0])
-        
+
         # clip distance to step_size
         if np.linalg.norm(to_node.position - from_node.position) < self.step_size:
             new_position = to_node.position
@@ -86,13 +82,13 @@ class RRTStar:
         new_node.cost = from_node.cost + np.linalg.norm(new_position - from_node.position)
         new_node.parent = from_node
         return new_node
-    
+
     def nearest_node(self, node):
         # find the nearest node in the map to a given node
         dlist = [np.linalg.norm(n.position - node.position) for n in self.node_list]
         min_index = dlist.index(min(dlist))
         return self.node_list[min_index]
-    
+
     def find_nearby_nodes(self, new_node, radius):
         # find nearby nodes in the map to new_node within a specified radius
         nearby_nodes = []
@@ -100,12 +96,12 @@ class RRTStar:
             if np.linalg.norm(node.position - new_node.position) <= radius:
                 nearby_nodes.append(node)
         return nearby_nodes
-    
+
     def choose_parent(self, new_node, nearby_nodes):
         # choose the best parent for new_node from nearby_nodes based on cost
         if not nearby_nodes:
             return new_node
-        
+
         # check collision before considering this node as a parent
         costs = []
         valid_nodes = []
@@ -114,7 +110,7 @@ class RRTStar:
                 cost = node.cost + np.linalg.norm(node.position - new_node.position)
                 costs.append(cost)
                 valid_nodes.append(node)
-        
+
         if not valid_nodes:
             return new_node
 
@@ -124,7 +120,7 @@ class RRTStar:
         new_node.parent = best_parent
         new_node.cost = costs[min_cost_index]
         return new_node
-    
+
     def rewire(self, new_node, nearby_nodes):
 
         # check all nearby_nodes to see if we can decrease their cost by rewiring through new_node
@@ -136,7 +132,7 @@ class RRTStar:
 
                 # update costs of all descendants
                 self.update_descendants_cost(node)
-    
+
     def update_descendants_cost(self, node):
         # update costs of all descendants of the given node
         for n in self.node_list:
@@ -170,7 +166,6 @@ class RRTStar:
 
 Below is an animation function, which executes the RRT* algorithm, and plots the tree, obstacles, start, and goal within matplotlib.
 
-
 ```python
 def animate(i, rrt_star, ax, save_counter):
     # perform multiple iterations per animation frame for faster and smoother growth
@@ -181,9 +176,9 @@ def animate(i, rrt_star, ax, save_counter):
         rand_node = rrt_star.generate_random_node()
         nearest_node = rrt_star.nearest_node(rand_node)
         new_node = rrt_star.steer(nearest_node, rand_node)
-        
+
         if rrt_star.check_collision(nearest_node, new_node):
-            continue 
+            continue
         nearby_nodes = rrt_star.find_nearby_nodes(new_node, radius=2.0)
         new_node = rrt_star.choose_parent(new_node, nearby_nodes)
         rrt_star.rewire(new_node, nearby_nodes)
@@ -233,12 +228,11 @@ def animate(i, rrt_star, ax, save_counter):
         path = np.array(path[::-1])
         ax.plot(path[:,0], path[:,1], color='magenta', linewidth=2, label='Path')
         ax.legend()
-    
+
     plt.savefig('rrt_star_progress' + str(i) + '.png')
 ```
 
 Below is the initialization of the RRT* class, matplotlib plot, and the function call to begin and animate the RRT* algorithm.
-
 
 ```python
 start = np.array([5,5])
@@ -266,11 +260,7 @@ animated_rrt = animation.FuncAnimation(fig, animate, fargs=(rrt_star, ax, save_c
 plt.show()
 ```
 
-
-
-
 This implementation of the RRT* algorithm, with the dynamics of a differential-drive robot is a continuation of the RRT* implementation I have made. This allows for dynamically possible motions for the robot, as opposed to straight line connections between nodes.
-
 
 ```python
 %matplotlib widget
@@ -281,7 +271,6 @@ import matplotlib.animation as animation
 
 Below is the Node class from my previous implementation of RRT*. This was adjusted to store the pose (x, y, theta) of the node, instead of simply the position (x,y). Additionally, the trajectory from the parent to this node is stored.
 
-
 ```python
 class Node:
     def __init__(self, pose, parent=None):
@@ -291,16 +280,13 @@ class Node:
         self.trajectory = []
 ```
 
-Below is the RRTStarDynamics class. This class contains many similar functions as the previous RRTStar class I implemented. For this specific implementation, the main difference is the changes to the *steer()* function, the *rewire()* function, the *choose_parent()* function, and the *check_collision()* function. The *simulate_trajectory()* function now uses the differential-drive robot dynamics to simulate a discretized trajectory.  
-  
-  
-The *steer()* function now samples *num_samples* trajectories with *simulate_trajectory()*. This is done with a random control input *v, w* based upon the robot's control limits. The trajectory that ends closest to the sampled node is chosen as the location of the new node, alongside the sampled trajectory.  
-The *simulate_trajectory()* function creates a trajectory with a given control input.  
-The *rewire()* function now simulates *num_samples* trajectories for each nearby node, and if a trajectory ends within a *threshold* of the new node, if the cost is lower that node will be chosen as the new parent.  
-The *choose_parent()* function now simulates a trajectory similar to *steer()* to determine a new nodes parent.  
-The *check_collision()* function now checks if each pose in the trajectory is within an object, instead of just the mid-point of the trajectory.  
+Below is the RRTStarDynamics class. This class contains many similar functions as the previous RRTStar class I implemented. For this specific implementation, the main difference is the changes to the _steer()_ function, the _rewire()_ function, the _choose_parent()_ function, and the _check_collision()_ function. The _simulate_trajectory()_ function now uses the differential-drive robot dynamics to simulate a discretized trajectory.
 
-
+The _steer()_ function now samples _num_samples_ trajectories with _simulate_trajectory()_. This is done with a random control input _v, w_ based upon the robot's control limits. The trajectory that ends closest to the sampled node is chosen as the location of the new node, alongside the sampled trajectory.  
+The _simulate_trajectory()_ function creates a trajectory with a given control input.  
+The _rewire()_ function now simulates _num_samples_ trajectories for each nearby node, and if a trajectory ends within a _threshold_ of the new node, if the cost is lower that node will be chosen as the new parent.  
+The _choose_parent()_ function now simulates a trajectory similar to _steer()_ to determine a new nodes parent.  
+The _check_collision()_ function now checks if each pose in the trajectory is within an object, instead of just the mid-point of the trajectory.
 
 ```python
 class RRTStarDynamics:
@@ -376,7 +362,7 @@ class RRTStarDynamics:
         dlist = [np.linalg.norm(n.pose[:2] - node.pose[:2]) for n in self.node_list]
         min_index = np.argmin(dlist)
         return self.node_list[min_index]
-    
+
     def find_nearby_nodes(self, new_node, radius):
         # find nearby nodes in the map to new_node within a specified radius
         nearby_nodes = []
@@ -385,17 +371,17 @@ class RRTStarDynamics:
             if dist <= radius:
                 nearby_nodes.append(node)
         return nearby_nodes
-    
+
     def choose_parent(self, new_node, nearby_nodes):
         # choose the best parent for new_node from nearby_nodes based on cost
         if not nearby_nodes:
             return new_node
-        
+
         # check collision before considering this node as a parent
         min_cost = float('inf')
         best_parent = None
         best_traj = None
-        
+
         # for each nearby node, simulate a trajectory to new_node and compute the cost
         for node in nearby_nodes:
             traj = self.steer(node, new_node)
@@ -431,7 +417,7 @@ class RRTStarDynamics:
             # skip if nearby_node is the parent of new_node or is the start node
             if nearby_node == new_node.parent or nearby_node == self.start:
                 continue
-            
+
             # steer from new_node to nearby_node, check if new_node is a better parent for any nearby node
             traj = self.steer(new_node, nearby_node)
             if traj and len(traj) > 0 and not self.check_collision(traj):
@@ -441,7 +427,7 @@ class RRTStarDynamics:
                 target = nearby_node.pose[:2]
                 if np.linalg.norm(endpoint - target) > self.threshold:
                     continue
-                
+
                 # compute the cost of this trajectory, and if it's better, rewire nearby_node
                 cost = nearby_node.cost + self.trajectory_cost(traj)
                 if cost < nearby_node.cost:
@@ -451,12 +437,12 @@ class RRTStarDynamics:
                     self.update_descendants_cost(nearby_node)
 
         return
-    
+
     def update_descendants_cost(self, curr_node):
         # update costs of all descendants of the given node
         for node in self.node_list:
             if node.parent == curr_node:
-                
+
                 traj = node.trajectory
                 if traj and len(traj) > 0:
                     node.cost = curr_node.cost + self.trajectory_cost(traj)
@@ -470,7 +456,7 @@ class RRTStarDynamics:
         for i in np.arange(1, len(trajectory)):
             cost += np.linalg.norm(trajectory[i][:2] - trajectory[i-1][:2])
         return cost
-    
+
     def check_collision(self, trajectory):
         # check if any part of the trajectory collides with any obstacles
         for obs in self.obstacles:
@@ -491,13 +477,12 @@ class RRTStarDynamics:
             else:
                 path.append(node.pose)
             node = node.parent
-        
+
         path.reverse()
         return path
 ```
 
-The *animate()* function performs the same task as in the default RRT* implementation, calling each function to implement the RRT* with robot dynamics, as well as plotting the growth of the algorithm.
-
+The _animate()_ function performs the same task as in the default RRT* implementation, calling each function to implement the RRT* with robot dynamics, as well as plotting the growth of the algorithm.
 
 ```python
 def animate(i, rrt_star, ax, save_counter):
@@ -567,7 +552,7 @@ def animate(i, rrt_star, ax, save_counter):
     pts = np.array([n.pose[:2] for n in rrt_star.node_list])
     if pts.size:
         ax.scatter(pts[:,0], pts[:,1], c='black', s=5, zorder=1)
-    
+
     # draw start and goal
     ax.scatter(rrt_star.start.pose[0], rrt_star.start.pose[1], c='green', s=100, label='Start', zorder=2)
     ax.scatter(rrt_star.goal.pose[0], rrt_star.goal.pose[1], c='red', s=100, label='Goal', zorder=2)
@@ -581,7 +566,6 @@ def animate(i, rrt_star, ax, save_counter):
 
     ax.legend(loc='lower right')
 ```
-
 
 ```python
 # define start and goal poses [x, y, theta]
@@ -599,9 +583,9 @@ obstacles = [
 ]
 
 # Create and run RRT*
-rrt_star = RRTStarDynamics(start, goal, world_size=20, 
-                                obstacles=obstacles, 
-                                step_size=0.5, 
+rrt_star = RRTStarDynamics(start, goal, world_size=20,
+                                obstacles=obstacles,
+                                step_size=0.5,
                                 max_iter=5000)
 
 # Animate the planning process

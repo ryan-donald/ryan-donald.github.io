@@ -53,11 +53,11 @@ Once I had all of these changes in, I ran the new policy and the previously depl
 
 The oscillation around the goal, which is the problem that started all of this, mostly went away. Scoring 40 goals per policy:
 
-| | Original Policy | Intermediate Policy | Final Policy |
-|---|---:|---:|---:|
-| goals showing jitter | 15% | 0% | 0% |
-| wobble while holding, p95 (encoder ticks) | 28 | 0.0 | 0.0 |
-| settled error | 4.9 mm | 6.6 mm | 4.9 mm |
+|                                           | Original Policy | Intermediate Policy | Final Policy |
+| ----------------------------------------- | --------------: | ------------------: | -----------: |
+| goals showing jitter                      |             15% |                  0% |           0% |
+| wobble while holding, p95 (encoder ticks) |              28 |                 0.0 |          0.0 |
+| settled error                             |          4.9 mm |              6.6 mm |       4.9 mm |
 
 The buzzing at the goal is gone, and the arm now arrives and stops, which it did not do before.
 

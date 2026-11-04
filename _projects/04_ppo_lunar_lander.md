@@ -25,7 +25,6 @@ The training curve for this policy is at the bottom of the page. The implementat
 
 Basic import functions:
 
-
 ```python
 import numpy as np
 import gymnasium as gym
@@ -39,14 +38,13 @@ from torch.distributions import Normal
 import matplotlib.pyplot as plt
 ```
 
-The cell below implements the Actor network, the Critic network, and the PPOAgent. The actor network outputs a *\mu* and *std* for each action dimension, which is then used to create and sample from a normal distribution. The critic network outputs a single value corresponding to the current state. Both networks input the current state vector.  
-  
-The PPOAgent instantiates an Actor network and a Critic network, as well as a shared optimizer, meant to introduce stability into the training step of the networks. Three additional functions are provided. First, select_action() allows for a state vector to be input, and will input that through the actor network, and sample an action based upon the output. This function returns the action vector, the log probability of that action, and the entropy of the distribution for that action. Second, the compute_gae() function allows for the computation of the generalized advantage estimation for each timestep in the collected batch of experiences, returning a returns vector and an advantages vector. Lastly, the update() function performs the minibatch generation and update loop for the two networks based upon the PPO algorithm. 
+The cell below implements the Actor network, the Critic network, and the PPOAgent. The actor network outputs a _\mu_ and _std_ for each action dimension, which is then used to create and sample from a normal distribution. The critic network outputs a single value corresponding to the current state. Both networks input the current state vector.
 
+The PPOAgent instantiates an Actor network and a Critic network, as well as a shared optimizer, meant to introduce stability into the training step of the networks. Three additional functions are provided. First, select_action() allows for a state vector to be input, and will input that through the actor network, and sample an action based upon the output. This function returns the action vector, the log probability of that action, and the entropy of the distribution for that action. Second, the compute_gae() function allows for the computation of the generalized advantage estimation for each timestep in the collected batch of experiences, returning a returns vector and an advantages vector. Lastly, the update() function performs the minibatch generation and update loop for the two networks based upon the PPO algorithm.
 
 ```python
 class Actor(nn.Module):
-    
+
     def __init__(self, state_dim, action_dim, hidden_dim=64):
         super(Actor, self).__init__()
         self.fc1 = nn.Linear(state_dim, hidden_dim)
@@ -76,7 +74,7 @@ class Critic(nn.Module):
         x = F.relu(self.fc2(x))
         x = self.fc3(x)
         return x
-    
+
 class PPOAgent:
 
     def __init__(self, state_dim, action_dim, lr=3e-4, gamma=0.99, gae_lambda = 0.95, clip_epsilon=0.2, hidden_dim=64):
@@ -86,7 +84,7 @@ class PPOAgent:
         self.gamma = gamma
         self.gae_lambda = gae_lambda
         self.clip_epsilon = clip_epsilon
-    
+
     def select_action(self, state):
 
         state = torch.FloatTensor(state).unsqueeze(0)
@@ -99,7 +97,7 @@ class PPOAgent:
         entropy = dist.entropy().sum(dim=-1)
         log_prob = dist.log_prob(action).sum(dim=-1)
         return action_clipped.squeeze(), log_prob.squeeze(), entropy.squeeze()
-    
+
     def compute_gae(self, rewards, values, dones, next_value):
 
         num_steps = rewards.shape[0]
@@ -111,11 +109,11 @@ class PPOAgent:
                 next_val = next_value
             else:
                 next_val = values[step + 1]
-                
+
             delta = rewards[step] + self.gamma * next_val * (1 - dones[step]) - values[step]
             gae = delta + self.gamma * self.gae_lambda * (1 - dones[step]) * gae
             advantages[step] = gae
-        
+
         returns = advantages + values
 
         return advantages, returns
@@ -168,7 +166,6 @@ class PPOAgent:
 ```
 
 The function below, run_ppo(), performs the entire training loop of PPO for a given continuous state and action space Gymnasium environment, from collecting the experiences for each batch, computing the advantages, and performing the update loop. Additionally, this will save the final and best performing actor network, or policy.
-
 
 ```python
 def run_ppo():
@@ -242,10 +239,10 @@ def run_ppo():
         with torch.no_grad():
             next_value = agent.critic(state).squeeze()
 
-        
+
 
         rewards = (rewards - rewards.mean()) / (rewards.std() + 1e-8)
-        
+
         advantages, returns = agent.compute_gae(rewards, values, dones, next_value)
 
         agent.update(states, actions, log_probs, returns, advantages, epochs=10, batch_size=batch_size)  # Remove normalization here
@@ -273,8 +270,8 @@ plot_rewards = []
 if __name__ == "__main__":
     plot_rewards = run_ppo()
 ```
-In the cell below, the function run_trained_agent() allows for us to visually see the performance of our trained policy from the above cell.
 
+In the cell below, the function run_trained_agent() allows for us to visually see the performance of our trained policy from the above cell.
 
 ```python
 def run_trained_agent():
@@ -296,7 +293,7 @@ def run_trained_agent():
         while not done:
             with torch.no_grad():
                 action, _, _ = agent.select_action(state)
-            random = np.random.uniform(low=-1.0, high=1.0, size=action.shape)      
+            random = np.random.uniform(low=-1.0, high=1.0, size=action.shape)
             # next_state, reward, terminated, truncated, info = env.step(random)
             next_state, reward, terminated, truncated, info = env.step(action.numpy())
             done = terminated or truncated
@@ -304,10 +301,10 @@ def run_trained_agent():
             ep_reward += reward
 
             # time.sleep(0.1)
-        
+
         print(f"Episode {i+1}: Reward = {ep_reward}")
 
-        
+
 
     env.close()
 
@@ -315,8 +312,7 @@ if __name__ == "__main__":
     run_trained_agent()
 ```
 
-Below is the code and associated plot for the reward for each episode during training. The official barrier for an episode to be considered a solution is to reach +200 reward. In my training, I wanted my agent to perform better, so I had the model train until it was able to average +275 reward over the last 100 episodes. 
-
+Below is the code and associated plot for the reward for each episode during training. The official barrier for an episode to be considered a solution is to reach +200 reward. In my training, I wanted my agent to perform better, so I had the model train until it was able to average +275 reward over the last 100 episodes.
 
 ```python
 window = 100
@@ -332,8 +328,4 @@ plt.legend()
 plt.show()
 ```
 
-
-    
 ![png]({{ site.baseurl }}/assets/img/PPO_rewards.png)
-    
-

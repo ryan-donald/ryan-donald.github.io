@@ -25,7 +25,6 @@ The implementation below is the one that produced this policy.
 
 Basic import functions:
 
-
 ```python
 import numpy as np
 import gymnasium as gym
@@ -41,7 +40,6 @@ import matplotlib.pyplot as plt
 
 The cell below enables PyTorch to run on a CUDA enabled GPU if available.
 
-
 ```python
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
@@ -49,18 +47,17 @@ print(f"Using device: {device}")
 
     Using device: cuda
 
+The cell below implements the Actor network and the Critic network. The Actor network inputs an 84x84x4 state representing four stacked 84x84 gray scale images from the environment, and outputs a softmax layer representing the probabilities for each action in the policy. The Critic network inputs the same 84x84x4 state representing four stacked 84x84 gray scale images from the environment, and outputs a single value based upon the state.
 
-The cell below implements the Actor network and the Critic network. The Actor network inputs an 84x84x4 state representing four stacked 84x84 gray scale images from the environment, and outputs a softmax layer representing the probabilities for each action in the policy. The Critic network inputs the same 84x84x4 state representing four stacked 84x84 gray scale images from the environment, and outputs a single value based upon the state.  
-  
-The state is represented as four consecutive 84x84 gray scale images from the environment for a few reasons:  
+The state is represented as four consecutive 84x84 gray scale images from the environment for a few reasons:
+
 1. The image is downscaled to 84x84 as determined in the paper "Playing Atari with Deep Reinforcement Learning" by Mnih et al., from DeepMind. This reduces the number of pixels improving computation time without losing too much information to determine the state.
 2. In the same purpose of reducing the size of the state, the image is gray scaled as color information is not important, reducing the number of pixels to one third.
-3. Four consecutive images are stacked on top of each other to allow the network to learn based on the velocity of the ball, as well as position. With only a single image, it is impossible to determine the velocity of the ball.  
-
+3. Four consecutive images are stacked on top of each other to allow the network to learn based on the velocity of the ball, as well as position. With only a single image, it is impossible to determine the velocity of the ball.
 
 ```python
 class Actor(nn.Module):
-    
+
     def __init__(self, action_dim):
         super(Actor, self).__init__()
         self.conv = nn.Sequential(
@@ -84,7 +81,7 @@ class Actor(nn.Module):
             if isinstance(module, (nn.Conv2d, nn.Linear)):
                 nn.init.orthogonal_(module.weight, gain=np.sqrt(2))
                 nn.init.constant_(module.bias, 0.0)
-                
+
     def forward(self, x):
         x = self.conv(x)
         x = x.view(x.size(0), -1)
@@ -126,7 +123,6 @@ class Critic(nn.Module):
 
 The PPOAgent instantiates an Actor network and a Critic network, as well as a shared optimizer, meant to introduce stability into the training step of the networks. Three additional functions are provided. First, select_action() allows for a state vector to be input, and will input that through the actor network, and sample an action based upon the policy. This function returns the action vector, the log probability of that action, and the entropy of the distribution for that action. Second, the compute_gae() function allows for the computation of the generalized advantage estimation for each timestep in the collected batch of experiences, returning a returns vector and an advantages vector. Lastly, the update() function performs the minibatch generation and update loop for the two networks based upon the PPO algorithm.
 
-
 ```python
 class PPOAgent:
 
@@ -134,25 +130,25 @@ class PPOAgent:
         self.actor = Actor(action_dim).to(device)
         self.critic = Critic().to(device)
         self.optimizer = optim.Adam(
-            list(self.actor.parameters()) + list(self.critic.parameters()), 
+            list(self.actor.parameters()) + list(self.critic.parameters()),
             lr=lr
         )
         self.gamma = gamma
         self.gae_lambda = gae_lambda
         self.clip_epsilon = clip_epsilon
-    
+
     def select_action(self, state):
-        
+
         with torch.no_grad():
             probs = self.actor(state)
-        
+
         dist = Categorical(probs)
         action = dist.sample()
         log_prob = dist.log_prob(action)
         entropy = dist.entropy()
-        
+
         return action.squeeze(), log_prob.squeeze(), entropy.squeeze()
-    
+
     def compute_gae(self, rewards, values, dones, next_value):
         num_steps = rewards.shape[0]
         advantages = torch.zeros_like(rewards)
@@ -163,11 +159,11 @@ class PPOAgent:
                 next_val = next_value
             else:
                 next_val = values[step + 1]
-                
+
             delta = rewards[step] + self.gamma * next_val * (1 - dones[step]) - values[step]
             gae = delta + self.gamma * self.gae_lambda * (1 - dones[step]) * gae
             advantages[step] = gae
-        
+
         returns = advantages + values
         return advantages, returns
 
@@ -219,15 +215,14 @@ class PPOAgent:
 
 The make_atari_env() function below allows for the creation of vectorized Atari environments, with additional control of each individual environment in the vectorized environments when compared to the make_vec() function I used in the LunarLander environment.
 
-
 ```python
 def make_atari_env(env_name, num_envs=8, render_mode=None):
-    
+
     def make_env(i):
         def _init():
             env = gym.make(env_name, frameskip=1, render_mode=render_mode)
             env = gym.wrappers.RecordVideo(env, video_folder="videos", episode_trigger=lambda x: True, name_prefix="ppo_pong_"+ str(i)) if render_mode == "rgb_array" else env
-            
+
             env = gym.wrappers.AtariPreprocessing(
                 env,
                 noop_max=30,
@@ -238,18 +233,17 @@ def make_atari_env(env_name, num_envs=8, render_mode=None):
                 grayscale_newaxis=False,
                 scale_obs=True
             )
-            
+
             env = gym.wrappers.FrameStack(env, num_stack=4)
-            
+
             return env
         return _init
-    
+
     envs = gym.vector.SyncVectorEnv([make_env(i) for i in range(num_envs)])
     return envs
 ```
 
 The function below, run_ppo(), performs the entire training loop of PPO for a given continuous state and action space Gymnasium environment, from collecting the experiences for each batch, computing the advantages, and performing the update loop. Additionally, this will save the final and best performing actor network and critic network.
-
 
 ```python
 def run_ppo_atari():
@@ -272,7 +266,7 @@ def run_ppo_atari():
     batch_size = 256
     num_epochs = 4
 
-    # to load saved models that are either partially or fully trained    
+    # to load saved models that are either partially or fully trained
     # agent.actor.load_state_dict(torch.load("ppo_atari_training_actor.pth", map_location=device))
     # agent.critic.load_state_dict(torch.load("ppo_atari_training_critic.pth", map_location=device))
 
@@ -312,10 +306,10 @@ def run_ppo_atari():
             next_value = agent.critic(state).squeeze()
 
         advantages, returns = agent.compute_gae(rewards, values, dones, next_value)
-        
-        agent.update(states, actions, log_probs, returns, advantages, 
+
+        agent.update(states, actions, log_probs, returns, advantages,
                     epochs=num_epochs, batch_size=batch_size, entropy_coef=0.01)
-        
+
         avg_reward = np.mean(episode_rewards[-100:]) if len(episode_rewards) >= 100 else np.mean(episode_rewards)
         if (update + 1) % 10 == 0:
             print(f"Update {update + 1}/{num_updates}, Average Reward: {avg_reward:.2f}, Episodes: {len(episode_rewards)}, Total Timesteps: {(update + 1) * steps_per_rollout}")
@@ -332,7 +326,6 @@ def run_ppo_atari():
 
 In the cell below, the function run_trained_agent() allows for us to visually see the performance of our trained policy from the above cell. Additionally, if the render_mode flag is set to "rgb_array", it will instead save an mp4 recording of each episode.
 
-
 ```python
 def run_trained_agents():
     num_envs = 1
@@ -344,12 +337,12 @@ def run_trained_agents():
 
     state, info = envs.reset()
     state = torch.FloatTensor(np.array(state)).to(device)
-    
-    # To load saved models that are either partially or fully trained   
+
+    # To load saved models that are either partially or fully trained
     agent.actor.load_state_dict(torch.load("ppo_atari_training_actor.pth", map_location=device))
     agent.critic.load_state_dict(torch.load("ppo_atari_training_critic.pth", map_location=device))
 
-    
+
     for ep in range(10):
         current_episode_rewards = np.zeros(num_envs)
         done = False
@@ -365,12 +358,11 @@ def run_trained_agents():
             state = torch.FloatTensor(np.array(next_state)).to(device)
 
             # time.sleep(0.1)
-        
+
         print(current_episode_rewards)
 
     envs.close()
 ```
-
 
 ```python
 # run_ppo_atari()

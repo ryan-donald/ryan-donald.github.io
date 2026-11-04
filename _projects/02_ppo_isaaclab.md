@@ -45,33 +45,33 @@ I benchmarked this implementation against the four RL libraries bundled with Isa
 
 **Cartpole** — 16 steps/env
 
-| Framework | Throughput (steps/s) | Iteration (ms) | Update (ms) | ryan_ppo speedup |
-|---|---:|---:|---:|---:|
-| **ryan_ppo (this repo)** | **1,816,704** | **72** | **5** | — |
-| skrl | 1,183,419 | 111 | 34 | 1.54× |
-| rl_games | 1,173,036 | 112 | 31 | 1.55× |
-| rsl_rl | 1,136,048 | 115 | 35 | 1.60× |
-| sb3 | 694,571 | 189 | — | 2.62× |
+| Framework                | Throughput (steps/s) | Iteration (ms) | Update (ms) | ryan_ppo speedup |
+| ------------------------ | -------------------: | -------------: | ----------: | ---------------: |
+| **ryan_ppo (this repo)** |        **1,816,704** |         **72** |       **5** |                — |
+| skrl                     |            1,183,419 |            111 |          34 |            1.54× |
+| rl_games                 |            1,173,036 |            112 |          31 |            1.55× |
+| rsl_rl                   |            1,136,048 |            115 |          35 |            1.60× |
+| sb3                      |              694,571 |            189 |           — |            2.62× |
 
 **Ant** — 32 steps/env
 
-| Framework | Throughput (steps/s) | Iteration (ms) | Update (ms) | ryan_ppo speedup |
-|---|---:|---:|---:|---:|
-| **ryan_ppo (this repo)** | **994,079** | **264** | **27** | — |
-| skrl | 893,478 | 293 | 54 | 1.11× |
-| rl_games | 885,594 | 296 | 49 | 1.12× |
-| rsl_rl | 832,319 | 315 | 56 | 1.19× |
-| sb3 | 508,995 | 515 | — | 1.95× |
+| Framework                | Throughput (steps/s) | Iteration (ms) | Update (ms) | ryan_ppo speedup |
+| ------------------------ | -------------------: | -------------: | ----------: | ---------------: |
+| **ryan_ppo (this repo)** |          **994,079** |        **264** |      **27** |                — |
+| skrl                     |              893,478 |            293 |          54 |            1.11× |
+| rl_games                 |              885,594 |            296 |          49 |            1.12× |
+| rsl_rl                   |              832,319 |            315 |          56 |            1.19× |
+| sb3                      |              508,995 |            515 |           — |            1.95× |
 
 **Reach** — 24 steps/env
 
-| Framework | Throughput (steps/s) | Iteration (ms) | Update (ms) | ryan_ppo speedup |
-|---|---:|---:|---:|---:|
-| **ryan_ppo (this repo)** | **1,947,558** | **101** | **16** | — |
-| skrl | 946,503 | 208 | 119 | 2.06× |
-| rl_games | 880,621 | 223 | 127 | 2.21× |
-| rsl_rl | 657,378 | 299 | 139 | 2.96× |
-| sb3 | 546,775 | 360 | — | 3.56× |
+| Framework                | Throughput (steps/s) | Iteration (ms) | Update (ms) | ryan_ppo speedup |
+| ------------------------ | -------------------: | -------------: | ----------: | ---------------: |
+| **ryan_ppo (this repo)** |        **1,947,558** |        **101** |      **16** |                — |
+| skrl                     |              946,503 |            208 |         119 |            2.06× |
+| rl_games                 |              880,621 |            223 |         127 |            2.21× |
+| rsl_rl                   |              657,378 |            299 |         139 |            2.96× |
+| sb3                      |              546,775 |            360 |           — |            3.56× |
 
 `ryan_ppo` has the highest throughput on every task: 1.11–2.06× the next-fastest library and 2.0–3.6× sb3. For every task, the execution time for the physics is largely unchanged library to library, and the library implementation controls the interface of the agent with the physics, and the update steps of the PPO algorithm. My library has a significantly faster update portion, and some of the surrounding framework for the rollouts is also optimized better.
 
@@ -81,33 +81,33 @@ Each of the three tasks also has a direct workflow version running on Newton (Mu
 
 **Cartpole (direct, Newton)** — 16 steps/env
 
-| Framework | Throughput (steps/s) | Iteration (ms) | Update (ms) | ryan_ppo speedup |
-|---|---:|---:|---:|---:|
-| **ryan_ppo (this repo)** | **3,508,178** | **37** | **4** | — |
-| skrl | 1,739,236 | 75 | 34 | 2.02× |
-| rl_games | 1,654,663 | 79 | 34 | 2.12× |
-| rsl_rl | 1,636,259 | 80 | 36 | 2.14× |
-| sb3 | 845,351 | 155 | — | 4.15× |
+| Framework                | Throughput (steps/s) | Iteration (ms) | Update (ms) | ryan_ppo speedup |
+| ------------------------ | -------------------: | -------------: | ----------: | ---------------: |
+| **ryan_ppo (this repo)** |        **3,508,178** |         **37** |       **4** |                — |
+| skrl                     |            1,739,236 |             75 |          34 |            2.02× |
+| rl_games                 |            1,654,663 |             79 |          34 |            2.12× |
+| rsl_rl                   |            1,636,259 |             80 |          36 |            2.14× |
+| sb3                      |              845,351 |            155 |           — |            4.15× |
 
 **Ant (direct, Newton)** — 32 steps/env
 
-| Framework | Throughput (steps/s) | Iteration (ms) | Update (ms) | ryan_ppo speedup |
-|---|---:|---:|---:|---:|
-| **ryan_ppo (this repo)** | **2,097,027** | **125** | **27** | — |
-| skrl | 1,522,399 | 172 | 54 | 1.38× |
-| rl_games | 1,494,115 | 175 | 50 | 1.40× |
-| rsl_rl | 1,325,754 | 198 | 57 | 1.58× |
-| sb3 | 648,647 | 404 | — | 3.23× |
+| Framework                | Throughput (steps/s) | Iteration (ms) | Update (ms) | ryan_ppo speedup |
+| ------------------------ | -------------------: | -------------: | ----------: | ---------------: |
+| **ryan_ppo (this repo)** |        **2,097,027** |        **125** |      **27** |                — |
+| skrl                     |            1,522,399 |            172 |          54 |            1.38× |
+| rl_games                 |            1,494,115 |            175 |          50 |            1.40× |
+| rsl_rl                   |            1,325,754 |            198 |          57 |            1.58× |
+| sb3                      |              648,647 |            404 |           — |            3.23× |
 
 **Reach (direct, Newton)** — 24 steps/env
 
-| Framework | Throughput (steps/s) | Iteration (ms) | Update (ms) | ryan_ppo speedup |
-|---|---:|---:|---:|---:|
-| **ryan_ppo (this repo)** | **2,880,358** | **68** | **16** | — |
-| skrl | 1,106,186 | 178 | 118 | 2.60× |
-| rl_games | 1,062,657 | 185 | 126 | 2.71× |
-| sb3 | 620,027 | 317 | — | 4.65× |
-| rsl_rl | 503,670 | 390 | 145 | 5.72× |
+| Framework                | Throughput (steps/s) | Iteration (ms) | Update (ms) | ryan_ppo speedup |
+| ------------------------ | -------------------: | -------------: | ----------: | ---------------: |
+| **ryan_ppo (this repo)** |        **2,880,358** |         **68** |      **16** |                — |
+| skrl                     |            1,106,186 |            178 |         118 |            2.60× |
+| rl_games                 |            1,062,657 |            185 |         126 |            2.71× |
+| sb3                      |              620,027 |            317 |           — |            4.65× |
+| rsl_rl                   |              503,670 |            390 |         145 |            5.72× |
 
 ### Learning
 
@@ -115,13 +115,13 @@ The above sections focus on how the training throughput of my library compares t
 
 **Cartpole** — 131M env steps (1,000 iterations)
 
-| Framework | Final reward | Seed range | Throughput (steps/s) | Wall-clock (min) |
-|---|---:|---:|---:|---:|
-| **ryan_ppo (this repo)** | **4.954** | 4.951–4.954 | **1,820,493** | **1.5** |
-| rsl_rl | 4.953 | 4.940–4.954 | 1,172,452 | 2.1 |
-| sb3 | 4.953 | 4.951–4.956 | 193,833 | 11.5 |
-| skrl | 4.922 | 4.888–4.927 | 837,575 | 2.9 |
-| rl_games | 4.797 | 4.782–4.801 | 784,086 | 3.0 |
+| Framework                | Final reward |  Seed range | Throughput (steps/s) | Wall-clock (min) |
+| ------------------------ | -----------: | ----------: | -------------------: | ---------------: |
+| **ryan_ppo (this repo)** |    **4.954** | 4.951–4.954 |        **1,820,493** |          **1.5** |
+| rsl_rl                   |        4.953 | 4.940–4.954 |            1,172,452 |              2.1 |
+| sb3                      |        4.953 | 4.951–4.956 |              193,833 |             11.5 |
+| skrl                     |        4.922 | 4.888–4.927 |              837,575 |              2.9 |
+| rl_games                 |        4.797 | 4.782–4.801 |              784,086 |              3.0 |
 
 <div align="center">
   <img src="{{ site.baseurl }}/assets/img/benchmark_cartpole_learning.png" width="100%" alt="Cartpole reward vs env steps">
@@ -129,13 +129,13 @@ The above sections focus on how the training throughput of my library compares t
 
 **Ant** — 524M env steps (2,000 iterations at 32 steps/env; 4,000 for the libraries that ship 16 steps/env)
 
-| Framework | Final reward | Seed range | Throughput (steps/s) | Wall-clock (min) |
-|---|---:|---:|---:|---:|
-| **ryan_ppo (this repo)** | **99.0** | 97.1–99.2 | **990,794** | **9.3** |
-| rsl_rl | 87.6 | 87.5–88.0 | 667,776 | 13.5 |
-| skrl | 68.9 | 67.3–74.0 | 877,204 | 10.4 |
-| rl_games | 64.7 | 62.5–68.9 | 861,793 | 10.6 |
-| sb3 | 59.3 | 58.0–61.1 | 561,684 | 16.0 |
+| Framework                | Final reward | Seed range | Throughput (steps/s) | Wall-clock (min) |
+| ------------------------ | -----------: | ---------: | -------------------: | ---------------: |
+| **ryan_ppo (this repo)** |     **99.0** |  97.1–99.2 |          **990,794** |          **9.3** |
+| rsl_rl                   |         87.6 |  87.5–88.0 |              667,776 |             13.5 |
+| skrl                     |         68.9 |  67.3–74.0 |              877,204 |             10.4 |
+| rl_games                 |         64.7 |  62.5–68.9 |              861,793 |             10.6 |
+| sb3                      |         59.3 |  58.0–61.1 |              561,684 |             16.0 |
 
 <div align="center">
   <img src="{{ site.baseurl }}/assets/img/benchmark_ant_learning.png" width="100%" alt="Ant reward vs env steps">
@@ -143,12 +143,12 @@ The above sections focus on how the training throughput of my library compares t
 
 **Franka Reach** — 197M env steps (1,000 iterations)
 
-| Framework | Final reward | Seed range | Throughput (steps/s) | Wall-clock (min) |
-|---|---:|---:|---:|---:|
-| **ryan_ppo (this repo)** | 0.240 | 0.239–0.240 | **503,474** | **7.2** |
-| rl_games | **0.243** | 0.243–0.243 | 452,301 | 7.9 |
-| skrl | 0.242 | 0.242–0.243 | 449,226 | 7.9 |
-| rsl_rl | 0.237 | 0.236–0.237 | 441,120 | 8.1 |
+| Framework                | Final reward |  Seed range | Throughput (steps/s) | Wall-clock (min) |
+| ------------------------ | -----------: | ----------: | -------------------: | ---------------: |
+| **ryan_ppo (this repo)** |        0.240 | 0.239–0.240 |          **503,474** |          **7.2** |
+| rl_games                 |    **0.243** | 0.243–0.243 |              452,301 |              7.9 |
+| skrl                     |        0.242 | 0.242–0.243 |              449,226 |              7.9 |
+| rsl_rl                   |        0.237 | 0.236–0.237 |              441,120 |              8.1 |
 
 <div align="center">
   <img src="{{ site.baseurl }}/assets/img/benchmark_reach_learning.png" width="100%" alt="Franka Reach reward vs env steps">
