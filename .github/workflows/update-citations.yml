@@ -7,6 +7,10 @@ on:
     - cron: "0 0 * * 5" # Friday
   workflow_dispatch:
 
+permissions:
+  contents: write # push the updated citations.yml
+  actions: write # dispatch the deploy workflow
+
 jobs:
   update-citations:
     runs-on: ubuntu-latest
@@ -92,10 +96,19 @@ jobs:
           echo "🔧 Git configured."
 
       - name: Commit and push if changed
+        id: commit
         run: |
           git add _data/citations.yml
           git diff --staged --quiet || (
             echo "📤 Committing and pushing changes..."
             git commit -m "Update Google Scholar citations"
             git push
+            echo "pushed=true" >> $GITHUB_OUTPUT
           )
+
+      # Pushes made with GITHUB_TOKEN don't trigger deploy.yml, but workflow_dispatch does.
+      - name: Rebuild site
+        if: steps.commit.outputs.pushed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run deploy.yml --ref ${{ github.ref_name }}
