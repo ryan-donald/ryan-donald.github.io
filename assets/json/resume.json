@@ -30,27 +30,25 @@
       "position": "Perception Engineer 2",
       "startDate": "2026-08-31",
       "endDate": "Present",
-      "summary": "Member of on-board vehicle tracking team.",
+      "summary": "Working on perception and tracking algorithms",
       "highlights": []
     },
     {
       "name": "Draper",
       "position": "Member of Technical Staff 2",
-      "startDate": "2025-04-01",
-      "endDate": "2025-08-01",
-      "summary": "Embedded software development and system bring-up.",
+      "startDate": "2025-04-20",
+      "endDate": "2025-08-20",
+      "summary": "Systems Engineering and Embedded Systems",
       "highlights": [
-        "Responsible for the design, implementation, and documentation of code on a microcontroller.",
-        "Performed check-out and bring-up of a system alongside a senior engineer, including debugging of any issues.",
-        "Developed Python code for post-processing of test data."
+        "Worked in a multi-disciplinary team on firmware design, implementation, and documentation, and hardware bringup"
       ]
     },
     {
       "name": "Persistent Autonomy and Robot Learning (PeARL) Lab, University of Massachusetts, Lowell",
       "position": "Research Assistant",
       "startDate": "2020-09-01",
-      "endDate": "2024-08-01",
-      "summary": "Four years of robotics research spanning underwater inspection, predictive manipulation, and autonomy evaluation.",
+      "endDate": "2024-08-31",
+      "summary": "Worked for four years in a robotics research lab on multiple projects for sponsors such as DEVCOM, ONR, and Amazon",
       "highlights": [
         "Designed, developed, and implemented a framework for underwater inspection with a robot within simulation.",
         "Developed a predictive framework utilizing an Intel RealSense camera, attached to the wrist of a Kinova Robotics Jaco 2, mounted on a Ghost Robotics Vision 60. This allows the system to predict and react to environment motion for better target tracking during and after execution of motions within a dynamic environment.",

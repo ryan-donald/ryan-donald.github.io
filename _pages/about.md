@@ -26,7 +26,7 @@ latest_posts:
   limit: 3 # leave blank to include all the blog posts
 ---
 
-I enjoy working on autonomous systems that are able to intelligently perceive and interact with the real world. I have a background in electrical and computer engineering from my bachelor's and master's degrees, as well as in software from embedded systems to algorithm development through my experience as a research assistant during my time in university, and my professional experience. I enjoy learning new topics and building things that actually work, not just in a demonstration. In my free time I like to spend time on my personal projects, go to coffee shops, play golf, and watch movies.
+I enjoy working on autonomous systems that are able to intelligently perceive and interact with the real world. I have a background in electrical and computer engineering from my bachelor's and master's degrees, as well as in software from embedded systems to algorithm development through my experience as a research assistant during my time in university, and my professional experience. I enjoy learning new topics and building things that actually work, not just in a demonstration. In my free time I like to spend time on my personal projects, go to coffee shops, play golf, and watch movies/tv shows.
 
 Most of my personal projects are in either reinforcement learning or computer vision, not just in a simulation but also in the real world. These can be found under my projects tab, which I will be expanding with another project once I receive the components, which are backordered.
 
