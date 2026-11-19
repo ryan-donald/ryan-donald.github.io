@@ -75,7 +75,8 @@
       "studyType": "M.S.",
       "startDate": "2023",
       "endDate": "2024",
-      "score": "4.0 GPA"
+      "score": "4.0 GPA",
+      "awards": "Dean's Medal"
     },
     {
       "institution": "University of Massachusetts, Lowell",
@@ -83,7 +84,8 @@
       "studyType": "B.S.",
       "startDate": "2019",
       "endDate": "2023",
-      "score": "3.95 GPA"
+      "score": "3.95 GPA",
+      "awards": "Dean's List every semester"
     }
   ],
   "publications": [
