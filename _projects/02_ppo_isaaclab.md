@@ -158,14 +158,10 @@ In the Ant task, my library clearly outperforms the others in this small benchma
 
 ## What else I have trained with it
 
-The plots below show the training progress across the range of Isaac Lab environments I have used this implementation on:
+The plots below show the training progress across the range of Isaac Lab environments (and one mjlab environment, the MicroDuck swizzle at the bottom) I have used this implementation on:
 
 <p float="left">
   <img src='{{ site.baseurl }}/assets/img/training_plot_episodes_Isaac-Reach-SO-ARM101-v0.png' width='49%'> <video src='{{ site.baseurl }}/assets/img/isaac_reach_so101.mp4' width="49%" style="vertical-align: middle" autoplay loop muted playsinline></video>
-</p>
-
-<p float="left">
-  <img src='{{ site.baseurl }}/assets/img/training_plot_episodes_Isaac-Cartpole-v0.png' width='49%'> <video src='{{ site.baseurl }}/assets/img/isaac_cartpole.mp4' width="49%" style="vertical-align: middle" autoplay loop muted playsinline></video>
 </p>
 
 <p float="left">
@@ -181,15 +177,19 @@ The plots below show the training progress across the range of Isaac Lab environ
 </p>
 
 <p float="left">
-  <img src='{{ site.baseurl }}/assets/img/training_plot_episodes_Isaac-Reorient-Cube-Shadow-v0.png' width='49%'> <video src='{{ site.baseurl }}/assets/img/isaac_shadow_reorient.mp4' width="49%" style="vertical-align: middle" autoplay loop muted playsinline></video>
-</p>
-
-<p float="left">
   <img src='{{ site.baseurl }}/assets/img/training_plot_episodes_Isaac-Shadow-Handover-v0.png' width='49%'> <video src='{{ site.baseurl }}/assets/img/isaac_shadow_handover.mp4' width="49%" style="vertical-align: middle" autoplay loop muted playsinline></video>
 </p>
 
 <p float="left">
   <img src='{{ site.baseurl }}/assets/img/training_plot_episodes_Isaac-Lift-KukaAllegro.png' width='49%'> <video src='{{ site.baseurl }}/assets/img/isaac_lift_kuka_allegro.mp4' width="49%" style="vertical-align: middle" autoplay loop muted playsinline></video>
+</p>
+
+<p float="left">
+  <img src='{{ site.baseurl }}/assets/img/training_plot_episodes_Ryan-Juggle-Franka-Realistic.png' width='49%'> <video src='{{ site.baseurl }}/assets/img/isaac_juggle_franka.mp4' width="49%" style="vertical-align: middle" autoplay loop muted playsinline></video>
+</p>
+
+<p float="left">
+  <img src='{{ site.baseurl }}/assets/img/training_plot_episodes_Mjlab-Velocity-Swizzle-MicroDuck.png' width='49%'> <video src='{{ site.baseurl }}/assets/img/mjlab_microduck_swizzle.mp4' width="49%" style="vertical-align: middle" autoplay loop muted playsinline></video>
 </p>
 
 The reach task above is the one I have done sim-to-real transfer with a real SO-ARM101, which turned out to be a much harder problem than training it was. That is [its own write-up]({{ site.baseurl }}/projects/01_ppo_sim2real/).
