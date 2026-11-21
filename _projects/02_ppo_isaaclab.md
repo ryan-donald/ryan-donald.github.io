@@ -189,6 +189,10 @@ The plots below show the training progress across the range of Isaac Lab environ
 </p>
 
 <p float="left">
+  <img src='{{ site.baseurl }}/assets/img/training_plot_episodes_Ryan-BallPlate-B601-DM.png' width='49%'> <video src='{{ site.baseurl }}/assets/img/isaac_ball_plate_b601.mp4' width="49%" style="vertical-align: middle" autoplay loop muted playsinline></video>
+</p>
+
+<p float="left">
   <img src='{{ site.baseurl }}/assets/img/training_plot_episodes_Mjlab-Velocity-Swizzle-MicroDuck.png' width='49%'> <video src='{{ site.baseurl }}/assets/img/mjlab_microduck_swizzle.mp4' width="49%" style="vertical-align: middle" autoplay loop muted playsinline></video>
 </p>
 
