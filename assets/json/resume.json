@@ -113,6 +113,10 @@
   ],
   "skills": [
     {
+      "name": "General",
+      "keywords": ["Technical Writing", "Communication", "Systems level thinking"]
+    },
+    {
       "name": "Programming Languages",
       "keywords": ["C", "C++", "Python", "VHDL", "MATLAB"]
     },
@@ -122,7 +126,7 @@
     },
     {
       "name": "Hardware",
-      "keywords": ["Oscilloscopes", "Logic Analyzers", "Function Generators", "Test Equipment"]
+      "keywords": ["Soldering", "Oscilloscopes", "Logic Analyzers", "Function Generators", "Test Equipment"]
     }
   ]
 }
