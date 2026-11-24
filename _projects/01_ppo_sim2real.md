@@ -11,6 +11,8 @@ I trained a policy in Isaac Lab with [my own PPO implementation]({{ site.baseurl
 
 I realized here that I would need to spend time collecting data on the real robot, and identifying parameter values for the simulator. Not only this, but also employing domain randomization for these parameters in the simulator, as I was experimentally determining these values and did not want the policy to overfit to the specific values. I finally got the policy into a good, but not great, state. An easy explanation would have been that the servos were cheap and a combination of gear backlash and other shortcomings was the reason it was not perfect. That explanation would have been wrong, and the process I went through to figure out why that is wrong is what I will detail here. The arm was fine, my simulation of it was not, and a policy trained against a simulator that does not match the real world learns a control strategy that only makes sense in the simulator.
 
+Interestingly, Isaac Lab now ships a sim2real model for the SO-ARM101. Their system identification does not match mine, even though they claim to be optimized for sim2real. This is likely an issue in either my process, their process, or more likely, both of our processes. Without knowing their process, my guess is that we have a mis-match in the data and types of data we collected for fitting the system parameters. As Richard Hamming writes about in *The Art of Doing Science and Engineering*, "You get what you measure". 
+
 The policy is trained to move the end-effector from any joint configuration to a specified position in the robot's coordinate frame. On the real robot, it simply iterates through a randomly sampled list of targets at specific intervals.
 
 [![PPO SO-ARM101 sim2real](https://img.youtube.com/vi/MzxyW7mrM0s/maxresdefault.jpg)](https://www.youtube.com/watch?v=MzxyW7mrM0s)
@@ -25,9 +27,9 @@ The systematic process I followed to fix the gap.
 2. **Fit the simulated system** Once the metrics were gathered, I analyzed them and attempted to fit the simulated model to the predicted value.
 3. **Verify in simulation** I would first perform a training run in the sim, to verify that the policy still learns to solve the task.
 4. **Verify on hardware** Next, I would verify that the performance of the new policy on the real robot is better than the performance from the old policy.
-5. **Keep what transferred** If the resulting transfer improved, I would keep what I adjusted, if not, I would review my beliefs of why I wanted to target that parameter, and how the results differed from what I expected.
+5. **Review my Hypothesis** If the resulting transfer improved, I would keep what I adjusted, if not, I would review my hypothesis for choosing this parameter, and try to determine what was wrong in my hypothesis to refine my understanding.
 
-## The various mis-matches I had
+## Alignment of the Simulator to the Real-World
 
 **Action Space Representation** I command the real robot through LeRobot, uses a normalized joint space, [-100, 100], based on initial robot calibration. My Isaac Lab environment commanded joint angles in radians from the URDF. To fix this, I normalized the observations and actions within the simulator to match this [-100, 100] joint space that the real robot uses.
 
